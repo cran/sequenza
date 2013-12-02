@@ -1,0 +1,15 @@
+citHeader("To cite package 'sequenza' in publications use:")
+
+bibentry(bibtype = 'Article',
+        title = "Sequenza: copy number and mutation profiles from tumor sequencing data",
+        author = personList(as.person("Francesco Favero"),
+                            as.person("Tejal Joshi"),
+                            as.person("Andrea M Marquard"),
+                            as.person("Nicolai J Birkbak"),
+                            as.person("Marcin Krzystanek"),
+                            as.person("Qiyuan Li"),
+                            as.person("Zoltan Szallasi"),
+                            as.person("Aron C Eklund")),
+        journal = "submitted for publication",
+        year = 2013
+)

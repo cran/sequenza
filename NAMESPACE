@@ -1,0 +1,29 @@
+export(
+	read.abfreq,
+	read.acgt,
+	gc.norm,
+	gc.sample.stats,
+	windowValues,
+	get.ci,
+	mutation.table,
+  find.breaks,
+  segment.breaks,
+	mufreq.bayes,
+	baf.bayes,
+	mufreq.model.fit,
+	baf.model.fit,
+  cp.plot,
+  cp.plot.contours,
+	plotWindows,
+	chromosome.view,
+  genome.view,
+	theoretical.depth.ratio,
+	theoretical.mufreq,
+	types.matrix,
+	model.points,
+	theoretical.baf,
+  sequenza.fit,
+  sequenza.extract
+)
+
+
