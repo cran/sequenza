@@ -1,7 +1,7 @@
-5edd16d0f53dc4fab36d3e0d8e62d031 *DESCRIPTION
+4a64f88b6dcff628f05f986c11c1884c *DESCRIPTION
 b77b3be5252da7d71f4e8dc4c5bc9a6b *NAMESPACE
 a82352e4b6b4a63ea6e31c3fb6414be3 *NEWS
-5dd230ab881fe5253ce2c31c40e5307c *R/analysis.R
+80955af8ebb285e5cdd78f2b0b00d462 *R/analysis.R
 fe17246c63114feffabc70eff9ccd005 *R/bayes.R
 f3cd6d9706296ee3d61e44e95e9aa928 *R/graphics.R
 d3ae142288a7f1dd5b8d4477b8112e8b *R/misc.R
@@ -15,12 +15,12 @@ e8c6ea7f60ba0977b0367f5f3bfe7a7d *data/abf.data.abfreq.txt.gz
 b013d425c9d18d118adbfbcc4cc359cc *exec/sequenza-utils.py
 fc731603bfdc4c2055dcdb79d2e3d22e *inst/CITATION
 98d2ba294ad8eb038e861e80396c5f63 *inst/doc/sequenza.R
-3f58efe45e25231d97605e2943c59780 *inst/doc/sequenza.Rnw
+29eec699a1572c9d423c46d89711a756 *inst/doc/sequenza.Rnw
 3f106719b2f17c19aa78ec2d71c39d96 *inst/doc/sequenza.bib
-74e3057c19c5030c34c5a18db29ff5e4 *inst/doc/sequenza.pdf
+230e5e4dab3b6c0cb9c2e71722e632c6 *inst/doc/sequenza.pdf
 f947de129f07281360e87abdf8a82a79 *inst/doc/sequenzaSNP.R
-a38c2c43446d095ce4e25077270f4f6f *inst/doc/sequenzaSNP.Rnw
-4a766e48f9f923a9fb2a513f2335fbe9 *inst/doc/sequenzaSNP.pdf
+a2002aa5257d31736c8cce7ede537907 *inst/doc/sequenzaSNP.Rnw
+2c83fd7c03c8da10de18f8003433d8a5 *inst/doc/sequenzaSNP.pdf
 1712f9194a4f99bb569b4ba1da64d491 *man/CP.data.Rd
 03649c1dca080688f21ca87067f3f1df *man/abf.data.Rd
 6a83fce88dcaec2e610264967d683d53 *man/baf.bayes.Rd
@@ -38,6 +38,6 @@ e3a1ec724e1e9ec7f5fb3a21d1099f62 *man/gc.norm.Rd
 512c9a0d177d2d0b7eef5fd0b9efd2a3 *man/types.matrix.Rd
 1f388b1dc2b36a86cb7bc2c33ce84326 *man/window.values.Rd
 c29246a1422a86a6814a872d2a07dc6f *man/workflows.Rd
-3f58efe45e25231d97605e2943c59780 *vignettes/sequenza.Rnw
+29eec699a1572c9d423c46d89711a756 *vignettes/sequenza.Rnw
 3f106719b2f17c19aa78ec2d71c39d96 *vignettes/sequenza.bib
-a38c2c43446d095ce4e25077270f4f6f *vignettes/sequenzaSNP.Rnw
+a2002aa5257d31736c8cce7ede537907 *vignettes/sequenzaSNP.Rnw

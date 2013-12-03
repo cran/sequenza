@@ -6,9 +6,9 @@ read.abfreq <- function (file, nrows = -1, fast = FALSE, gz = TRUE, header = TRU
    if(fast && nrows == -1) {
     if(gz) {
        if (!is.null(chr.name)) {
-          wc <- system(paste(paste('zgrep -c "^', chr.name, '\t"', sep = ''), file, sep = ' '), intern = TRUE)
+          wc <- system(paste(paste('gzip -d -c | grep -c "^', chr.name, '\t"', sep = ''), file, sep = ' '), intern = TRUE)
        } else {
-          wc <- system(paste('gunzip -c', file, '| wc'), intern = TRUE)
+          wc <- system(paste('gzip -d -c', file, '| wc'), intern = TRUE)
        }
     } else {
        if (!is.null(chr.name)) {
@@ -26,7 +26,7 @@ read.abfreq <- function (file, nrows = -1, fast = FALSE, gz = TRUE, header = TRU
   }
    if (!is.null(chr.name)) {
       if (gz) {
-         grep.part <- paste("zgrep '^", chr.name, "\t'", sep = "")
+         grep.part <- paste("gzip -d -c | grep '^", chr.name, "\t'", sep = "")
       } else {
          grep.part <- paste("grep '^", chr.name, "\t'", sep = "")
       }
@@ -44,7 +44,7 @@ read.abfreq <- function (file, nrows = -1, fast = FALSE, gz = TRUE, header = TRU
             n.lines <- n.lines + 1
          }
          if(gz) {
-            abf.data <- read.delim(pipe(paste("gunzip -c", file,"| sed -n '", paste(n.lines[1], n.lines[2], sep = ","),"p'")),
+            abf.data <- read.delim(pipe(paste("gzip -d -c", file,"| sed -n '", paste(n.lines[1], n.lines[2], sep = ","),"p'")),
                        colClasses = colClasses, nrows = 1 + n.lines[2] - n.lines[1], header = FALSE,...)
          }  else{
             abf.data <- read.delim(pipe(paste("sed -n '", paste(n.lines[1], n.lines[2], sep = ","),"p'", file)),
@@ -79,7 +79,7 @@ gc.norm <- function (x, gc) {
 gc.sample.stats <- function (file, gz = TRUE) {
    colClasses = c('character', 'numeric', 'numeric')
    if (gz) {
-      abf.data <- read.delim(pipe(paste('gunzip -c', file, '| cut -f 1,6,10')), colClasses = colClasses)
+      abf.data <- read.delim(pipe(paste('gzip -d -c', file, '| cut -f 1,6,10')), colClasses = colClasses)
    } else {
       abf.data <- read.delim(pipe(paste('cut -f 1,6,10', file)), colClasses = colClasses)
    }

@@ -18,7 +18,7 @@
 \newcommand{\Robject}[1]{{\texttt{#1}}}
 \newcommand{\Rpackage}[1]{{\textit{#1}}}
 
-\author{Francesco Favero\footnote{favero@cbs.dtu.dk}, Aron C. Eklund}
+\author{Francesco Favero\footnote{favero@cbs.dtu.dk}, Tejal Joshi, Andrea M. Marquard, Aron C. Eklund}
 
 \begin{document}
 \SweaveOpts{concordance=TRUE}
