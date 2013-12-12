@@ -32,7 +32,7 @@ sequenza.extract <- function(file, gz = TRUE, window = 1e6, overlap = 1, gamma =
       windows.baf[[which(chr.vect == chr)]]   = abf.b.win[[1]]
       windows.ratio[[which(chr.vect == chr)]] = abf.r.win[[1]]
       mutation.list[[which(chr.vect == chr)]] = mut.tab
-      segments.list[[which(chr.vect == chr)]] = seg.s1   
+      segments.list[[which(chr.vect == chr)]] = seg.s1
    }
    names(windows.baf)   <- chr.vect
    names(windows.ratio) <- chr.vect

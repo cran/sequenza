@@ -35,7 +35,7 @@ depth.ratio.dpois <- function(size, depth.ratio, depth.ratio.model) {
 }
 
 mufreq.bayes <- function(mufreq, depth.ratio, cellularity, ploidy, avg.depth.ratio,
-                         weight.mufreq = 100, weight.ratio = 100, CNt.min = 1, CNt.max = 7, 
+                         weight.mufreq = 100, weight.ratio = 100, CNt.min = 1, CNt.max = 7,
                          CNn = 2, priors.table = data.frame(CN = CNt.min:CNt.max, value = 1)) {
 
    mufreq.tab <- data.frame(F = mufreq, ratio = depth.ratio,
@@ -44,20 +44,20 @@ mufreq.bayes <- function(mufreq, depth.ratio, cellularity, ploidy, avg.depth.rat
    mufreq.depth.ratio <- cbind(types, model.points(cellularity = cellularity, ploidy = ploidy,
                                                    types = types, avg.depth.ratio = avg.depth.ratio))
    rows.x             <- 1:nrow(mufreq.tab)
-      
+
    priors <- rep(1, nrow(mufreq.depth.ratio))
    for (i in 1:nrow(priors.table)) {
       priors[mufreq.depth.ratio$CNt == priors.table$CN[i]] <- priors.table$value[i]
    }
-   priors <- priors / sum(priors)   
-   
+   priors <- priors / sum(priors)
+
    bayes.fit <- function (x, mat, model.pts, priors) {
       test.ratio <- model.pts$depth.ratio
       test.mufrq <- model.pts$mufreqs
       min.offset <- 1e-323
       score.r    <- depth.ratio.dbinom(size = mat[x,]$weight.ratio, depth.ratio = mat[x,]$ratio, test.ratio)
       score.m    <- mufreq.dbinom(mufreq = mat[x,]$F, depth.t = mat[x,]$weight.mufreq, test.mufrq)
-      
+
       score.r    <- score.r * priors
       score.m    <- score.m
 
@@ -93,10 +93,10 @@ baf.bayes <- function(Bf, depth.ratio, cellularity, ploidy, avg.depth.ratio,
                       weight.Bf = 100, weight.ratio = 100, CNt.min = 0,
                       CNt.max = 7, CNn = 2, priors.table = data.frame(CN = CNt.min:CNt.max,
                       value = 1), ratio.priority = FALSE, skew.baf = 0.95) {
-   
+
    mufreq.tab <- data.frame(Bf = Bf, ratio = depth.ratio,
                             weight.Bf = weight.Bf, weight.ratio = weight.ratio)
-   mufreq.depth.ratio <- model.points(cellularity = cellularity, ploidy = ploidy, 
+   mufreq.depth.ratio <- model.points(cellularity = cellularity, ploidy = ploidy,
                                       types = cbind(CNn = CNn, CNt = CNt.min:CNt.max, Mt = 0),
                                       avg.depth.ratio = avg.depth.ratio)
    model.d.ratio      <- cbind(CNt = CNt.min:CNt.max, depth.ratio = mufreq.depth.ratio[, 2])
@@ -111,20 +111,20 @@ baf.bayes <- function(Bf, depth.ratio, cellularity, ploidy, avg.depth.ratio,
    # model.pts          <- cbind(baf.type = apply(model.pts[, 1:3], 1, FUN = function(x) paste(x, collapse = "_")),
    #                             model.pts[, 4:5])
    rows.x             <- 1:nrow(mufreq.tab)
-   
+
    priors <- rep(1, nrow(model.pts))
    for (i in 1:nrow(priors.table)) {
       priors[model.pts$CNt == priors.table$CN[i]] <- priors.table$value[i]
    }
    priors <- priors / sum(priors)
-   
+
    bayes.fit <- function (x, mat, model.pts, priors, ratio.priority) {
       test.ratio <- model.pts$depth.ratio
       test.baf   <- model.pts$BAF
       min.offset <- 1e-323
       score.r    <- depth.ratio.dbinom(size = mat[x,]$weight.ratio, depth.ratio = mat[x,]$ratio, test.ratio)
       score.b    <- baf.dbinom(baf = mat[x,]$Bf, depth.t = mat[x,]$weight.Bf, test.baf)
-      
+
       score.r    <- score.r * priors
       score.b    <- score.b
 
@@ -134,7 +134,7 @@ baf.bayes <- function(Bf, depth.ratio, cellularity, ploidy, avg.depth.ratio,
       if (ratio.priority == FALSE) {
          max.lik <-  which.max(post.model)
          max.post <- c(as.numeric(model.pts[max.lik,1:3]), log2(post.model[max.lik]))
-      } else {      
+      } else {
          res.cn     <- model.pts$CNt[which.max(score.r)]
          idx.pts    <- model.pts$CNt == res.cn
          model.lik  <- cbind(model.pts[idx.pts, 1:3], log2(post.model[idx.pts]))
@@ -147,14 +147,14 @@ baf.bayes <- function(Bf, depth.ratio, cellularity, ploidy, avg.depth.ratio,
       max.post
    }
    bafs.L           <- mapply(FUN = bayes.fit, rows.x,
-                         MoreArgs = list(mat = mufreq.tab, 
+                         MoreArgs = list(mat = mufreq.tab,
                                          model.pts = model.pts,
                                          priors = priors,
                                          ratio.priority = ratio.priority),
                                          SIMPLIFY = FALSE)
    bafs.L           <- do.call(rbind, bafs.L)
    colnames(bafs.L) <- c("CNt", "A", "B", "L")
-   bafs.L 
+   bafs.L
 }
 
 shannon.types <- function(types.mat) {
@@ -164,20 +164,20 @@ shannon.types <- function(types.mat) {
    -sum(tab.types)
 }
 
-mufreq.model.fit <- function(cellularity = seq(0.3, 1, by = 0.01), 
+mufreq.model.fit <- function(cellularity = seq(0.3, 1, by = 0.01),
                           ploidy = seq(1, 7, by = 0.1),
                           mc.cores = getOption("mc.cores", 2L), ...) {
-   
-   result <- expand.grid(ploidy = ploidy, cellularity = cellularity, 
-                         KEEP.OUT.ATTRS = FALSE) 
-   
+
+   result <- expand.grid(ploidy = ploidy, cellularity = cellularity,
+                         KEEP.OUT.ATTRS = FALSE)
+
    fit.cp <- function(ii) {
-      L.model <- mufreq.bayes(cellularity = result$cellularity[ii], 
+      L.model <- mufreq.bayes(cellularity = result$cellularity[ii],
                            ploidy = result$ploidy[ii], ...)
       sum(L.model[,4])
    }
    bayes.res <- mclapplyPb(X = 1:nrow(result), FUN = fit.cp, mc.cores = mc.cores)
-   result$L <- unlist(bayes.res) 
+   result$L <- unlist(bayes.res)
    z <- tapply(result$L, list(result$ploidy, result$cellularity), mean)
    x <- as.numeric(rownames(z))
    y <- as.numeric(colnames(z))
@@ -187,20 +187,20 @@ mufreq.model.fit <- function(cellularity = seq(0.3, 1, by = 0.01),
    list(x = x, y = y, z = znorm)
 }
 
-baf.model.fit <- function(cellularity = seq(0.3, 1, by = 0.01), 
+baf.model.fit <- function(cellularity = seq(0.3, 1, by = 0.01),
                           ploidy = seq(1, 7, by = 0.1),
                           mc.cores = getOption("mc.cores", 2L), ...) {
-   
-   result <- expand.grid(ploidy = ploidy, cellularity = cellularity, 
-                         KEEP.OUT.ATTRS = FALSE) 
-   
+
+   result <- expand.grid(ploidy = ploidy, cellularity = cellularity,
+                         KEEP.OUT.ATTRS = FALSE)
+
    fit.cp <- function(ii) {
-      L.model <- baf.bayes(cellularity = result$cellularity[ii], 
+      L.model <- baf.bayes(cellularity = result$cellularity[ii],
                            ploidy = result$ploidy[ii], ...)
       sum(L.model[,4])
    }
    bayes.res <- mclapplyPb(X = 1:nrow(result), FUN = fit.cp, mc.cores = mc.cores)
-   result$L <- unlist(bayes.res) 
+   result$L <- unlist(bayes.res)
    z <- tapply(result$L, list(result$ploidy, result$cellularity), mean)
    x <- as.numeric(rownames(z))
    y <- as.numeric(colnames(z))
@@ -209,5 +209,3 @@ baf.model.fit <- function(cellularity = seq(0.3, 1, by = 0.01),
    znorm <- 2^(z - LogSumLik)
    list(x = x, y = y, z = znorm)
 }
-
-

@@ -67,7 +67,7 @@ def xopen(filename, mode='r'):
    if sys.version_info[0] < 3:
       assert isinstance(filename, basestring)
    else:
-      assert isinstance(filename, str)      
+      assert isinstance(filename, str)
    if filename == '-':
       return sys.stdin if 'rb' in mode else sys.stdout
    if filename.endswith('.gz'):
@@ -185,7 +185,7 @@ class GCmultiPileups:
       self.gc          = gc
       self             = next_gcfile(self)
       self.mpileup     = multiPileups
-      self._last_chromosome = None          
+      self._last_chromosome = None
    _sentinel        = object()
    def next(self):
       self.pile_line   = self.mpileup.next()
@@ -557,7 +557,7 @@ def RPy2sqeezeABfreq(abfreq, loop, tag, out, kmin, gamma, mufreq_treshold):
                'segments' : segments_list, 'chromosomes' : chr_vect, 'gc' : gc_stats})
    robjects.r('assign')(x = tag + '_sequenza_extract', value = res)
    robjects.r('save')(list = tag + '_sequenza_extract', file = subdir + '/' + tag + '_sequenza_extract.Rdata')
-   # robjects.r('save')(list = tag + '_windows_ratio', file = subdir + '/' + tag + '_windows_ratio.Rdata')   
+   # robjects.r('save')(list = tag + '_windows_ratio', file = subdir + '/' + tag + '_windows_ratio.Rdata')
    # robjects.r('write.table')(x = gc_stats.rx2('raw'), file = subdir +'/' + tag + '_raw_GC.txt', col_names = True, row_names = False, sep = "\t")
    # robjects.r('write.table')(x = gc_stats.rx2('adj'), file = subdir +'/' + tag + '_adj_GC.txt', col_names = True, row_names = False, sep = "\t")
    # robjects.r('assign')(x = tag + '_windows_Bf', value = windows_baf)
@@ -818,7 +818,7 @@ def RPy2SequenzaOverride(data_dir, is_male = True, tag = None, X = "X", Y = "Y",
            ylab = "Percentage (%)", xlab = "copy number")
    robjects.r('dev.off()')
 
-   
+
 def pileup2acgt(parser, subparser):
    subparser.add_argument('pileup', metavar='pileup',
                    help='pileup (SAMtools) file in input, if a gzipped file will be selected it will be opened in gzip mode, if file name is - it would be loaded from STDIN.')
@@ -847,7 +847,7 @@ def pileup2acgt(parser, subparser):
 def pileup2abfreq(parser, subparser):
    parser_ABinput    = subparser.add_argument_group(title='Input Files',description='Required input files.')
    parser_ABgenotype    = subparser.add_argument_group(title='Genotyper',description='Options regarding the genotyping.')
-   parser_ABperformance = subparser.add_argument_group(title='Performance', description='Options affecting the performance.')   
+   parser_ABperformance = subparser.add_argument_group(title='Performance', description='Options affecting the performance.')
    parser_ABqualitysets = subparser.add_argument_group(title='Quality and Format', description='Options that change the quality threshold and format.')
    parser_ABinput.add_argument('-r', '--reference', dest = 'reference', required = True,
                    help='The pileup of the reference/normal sample')
@@ -868,7 +868,7 @@ def pileup2abfreq(parser, subparser):
    parser_ABperformance.add_argument('-p', '--processes', dest='nproc', default="0", type=int,
                    help='Set the number of processes to split the genotyping. If it is set to 0 (default), the job will occurs with no forking to other processes. If it is bigger then 0 it is more efficient with an adequate chunk size, otherwise with smaller chunks (eg.: < 1000) it will loose performance. Default 0')
    parser_ABperformance.add_argument('-c', '--chunk', dest='chunk', default="1", type=int,
-                   help='Set the number of lines to assign to each process. If is set to 1 (default) will set to default also the --processes parameter (-p 0). An adequate chunk size defends on the number of processes and on the file size (chunk size bigger then total number of line is not good). However a chunk size ~ 1000 leads to better performance. Default 1.')   
+                   help='Set the number of lines to assign to each process. If is set to 1 (default) will set to default also the --processes parameter (-p 0). An adequate chunk size defends on the number of processes and on the file size (chunk size bigger then total number of line is not good). However a chunk size ~ 1000 leads to better performance. Default 1.')
    return parser.parse_args()
 
 def GC_windows(parser, subparser):
@@ -928,7 +928,7 @@ def sequenzaFit(parser, subparser):
    parser_model.add_argument('-f', "--segment-filter", dest = 'segfilt', type = float, default = 10e6,
                    help='Size in base-pair, to filter the segments to use in the Bayesian inference. Default 10e6.')
    parser_model.add_argument('-l', "--priors", dest = 'priors', type = str, default = '{"CN" :[1, 2, 3, 4], "value" : [1, 2, 1, 1]}',
-                   help='Set the priors on the copy-number. Default 2 on CN = 2, 1 for all the other CN state \'{"CN" :[1, 2, 3, 4], "value" : [1, 2, 1, 1]}\'.')                    
+                   help='Set the priors on the copy-number. Default 2 on CN = 2, 1 for all the other CN state \'{"CN" :[1, 2, 3, 4], "value" : [1, 2, 1, 1]}\'.')
    return parser.parse_args()
 
 def sequenzaOverride(parser, subparser):
@@ -942,7 +942,7 @@ def sequenzaOverride(parser, subparser):
    parser_param .add_argument('-c', '--cellularity', required = True, type = float,
                    help = 'Cellularity parameter to pass to the model.')
    parser_param .add_argument('-p', '--ploidy', required = True, type = float,
-                   help = 'Ploidy parameter to pass to the model.')                
+                   help = 'Ploidy parameter to pass to the model.')
    parser_gender.add_argument('--is-male', dest = 'isMale', action='store_true', default = False,
                    help='Boolen flag indicating if the sequencing data are from a male or female, and consequently properly handle chromosome X and Y')
    parser_gender.add_argument('-X', "--chrX", dest = 'X', type = str, default = "X",
@@ -950,7 +950,7 @@ def sequenzaOverride(parser, subparser):
    parser_gender.add_argument('-Y', "--chrY", dest = 'Y', type = str, default = "Y",
                    help='Character defining chromosome Y. Default Y.')
    parser_param.add_argument('-r', "--only-ratio", dest = 'onlyratio', action='store_true', default = False,
-                   help='Do not take into account the BAF in the Bayesian inference, but only the depth ratio.')                    
+                   help='Do not take into account the BAF in the Bayesian inference, but only the depth ratio.')
    return parser.parse_args()
 
 def main():
@@ -969,7 +969,7 @@ def main():
    if RPY2 == True:
       parser_squeezeAB  = subparsers.add_parser('sequenzaExtract', help = 'Uses the R sequenza package to extract and save meaningful information from an ABfreq file')
       parser_doAllSequenza = subparsers.add_parser('sequenzaFit', help = 'Uses the R sequenza package to infer purity, ploidy and annotate mutation and CNV.')
-      parser_overrideSequenza = subparsers.add_parser('sequenzaOverride', help = 'Uses the R sequenza package to calculate the CNV given the values for cellularity and ploidy.')      
+      parser_overrideSequenza = subparsers.add_parser('sequenzaOverride', help = 'Uses the R sequenza package to calculate the CNV given the values for cellularity and ploidy.')
    try:
       used_module =  sys.argv[1]
       if used_module == "pileup2acgt":
@@ -1021,7 +1021,7 @@ def main():
             p2 = args.sample
             gc = args.gc
             stream_mpileup = IterableQueue()
-            line_worker_partial = partial(line_worker, depth_sum=args.n, qlimit=args.qlimit, qformat=args.qformat, hom_t=args.hom, het_t=args.het)            
+            line_worker_partial = partial(line_worker, depth_sum=args.n, qlimit=args.qlimit, qformat=args.qformat, hom_t=args.hom, het_t=args.het)
             with xopen(p1, 'rb') as normal, xopen(p2, 'rb') as tumor, xopen(gc, 'rb') as gc_file:
                pup = multiPileups(normal,tumor)
                pup = GCmultiPileups(pup, gc_file)
@@ -1066,7 +1066,7 @@ def main():
          RPy2doAllSequenza(check_dir(args.dir), args.isMale, args.tag, args.X, args.Y, args.ncpu, args.onlyratio, args.segfilt, priors_dict)
       elif RPY2 == True and used_module == "sequenzaOverride":
          args = sequenzaOverride(parser, parser_overrideSequenza)
-         RPy2SequenzaOverride(check_dir(args.dir), args.isMale, args.tag, args.X, args.Y, args.onlyratio, args.cellularity, args.ploidy)         
+         RPy2SequenzaOverride(check_dir(args.dir), args.isMale, args.tag, args.X, args.Y, args.onlyratio, args.cellularity, args.ploidy)
       else:
          return parser.parse_args()
 

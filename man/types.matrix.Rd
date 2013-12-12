@@ -33,7 +33,7 @@
 \examples{
   ## Generate matrix types from 0 to 4 copy number, being the non-tumor chromosome diploid.
   types.matrix(CNt.min = 0, CNt.max = 4, CNn = 2 )
-  
+
   ## Generate matrix types from 0 to 4 copy number, being the non-tumor chromosome monoploid.
   types.matrix(CNt.min = 0, CNt.max = 4, CNn = 1 )
 

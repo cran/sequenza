@@ -1,7 +1,7 @@
 subclonal.matrix <- function(mut.tab, cellularity = seq(0.1, 1, 0.05), ploidy, avg.depth.ratio, mc.cores = 2){
-  
+
   mut.types.list <- lapply(X = 1:nrow(mut.tab),
-                           FUN = function(x) { 
+                           FUN = function(x) {
                              types.matrix(CNn = mut.tab[x, 'CNn'],
                                           CNt.min = mut.tab[x, 'CNt'],
                                           CNt.max = mut.tab[x, 'CNt'])})
@@ -28,7 +28,7 @@ subclonal.matrix <- function(mut.tab, cellularity = seq(0.1, 1, 0.05), ploidy, a
   res
 }
 
-sequenza2PyClone <- function(mut.tab, seg.cn, sample.id, norm.cn = 2) { 
+sequenza2PyClone <- function(mut.tab, seg.cn, sample.id, norm.cn = 2) {
   mut.tab <- cbind(mut.tab[,c('chromosome', 'n.base', 'good.s.reads','F', 'mutation')], CNt = NA, A = NA, B = NA)
   for (i in 1:nrow(seg.cn)) {
      pos.filt <- mut.tab$chromosome == seg.cn$chromosome[i] & mut.tab$n.base >= seg.cn$start.pos[i] & mut.tab$n.base <= seg.cn$end.pos[i]

@@ -15,7 +15,7 @@
   sequenza.fit(sequenza.extract, female = TRUE, segment.filter = 1e7,
                XY = c(X = "X", Y = "Y"), cellularity = seq(0.1,1,0.01),
                ploidy = seq(1, 7, 0.1), priors.table = data.frame(CN = 2, value = 2),
-               mc.cores = getOption("mc.cores", 2L))                    
+               mc.cores = getOption("mc.cores", 2L))
 }
 
 \arguments{
@@ -53,5 +53,5 @@ data.file <-  system.file("data", "abf.data.abfreq.txt.gz",
               package = "sequenza")
 test <- sequenza.extract(data.file)
 CP   <- sequenza.fit(test, mc.cores = 4)
-   }                 
+   }
 }

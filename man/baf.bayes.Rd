@@ -22,7 +22,7 @@
   \item{mufreq}{vector of mutation frequencies (values can range from 0 to 1).}
   \item{depth.ratio}{vector of depth ratios.}
   \item{weight.Bf}{vector of weights for B-allele frequency values.}
-  \item{weight.mufreq}{vector of weights for the mutation frequency values.}  
+  \item{weight.mufreq}{vector of weights for the mutation frequency values.}
   \item{weight.ratio}{vector of weights for the depth ratio values.}
   \item{cellularity}{fraction of tumor cells in the sample.}
   \item{ploidy}{ratio between total DNA content in a tumor cell and a normal cell.}
@@ -63,7 +63,7 @@ gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
 abf.data  <- read.abfreq(data.file, chr.name = 1)
 
 # Correct the coverage of the loaded chromosome:
-abf.data$adjusted.ratio <- abf.data$depth.ratio / 
+abf.data$adjusted.ratio <- abf.data$depth.ratio /
                            gc.vect[as.character(abf.data$GC.percent)]
 # Select the heterozygous positions
 abf.hom  <- abf.data$ref.zygosity == 'hom'
@@ -75,19 +75,19 @@ seg.s1 <- segment.breaks(abf.data, breaks = breaks)
 
 # filter out small ambiguous segments, and conveniently weight the segments by size:
 seg.filtered <- seg.s1[(seg.s1$end.pos - seg.s1$start.pos) > 10e6, ]
-weights.seg  <- 150 + round((seg.filtered$end.pos - 
+weights.seg  <- 150 + round((seg.filtered$end.pos -
                              seg.filtered$start.pos) / 1e6, 0)
 # get the genome wide mean of the normalized depth ratio:
 avg.depth.ratio <- mean(gc.stats$adj[,2])
 # run the BAF model fit
 
-CP <- baf.model.fit(Bf = seg.filtered$Bf, depth.ratio = seg.filtered$depth.ratio, 
+CP <- baf.model.fit(Bf = seg.filtered$Bf, depth.ratio = seg.filtered$depth.ratio,
                     weight.ratio = weights.seg,
                     weight.Bf = weights.seg,
                     avg.depth.ratio = avg.depth.ratio,
-                    cellularity = seq(0.1,1,0.01), 
-                    ploidy = seq(0.5,3,0.05))  
-                    
+                    cellularity = seq(0.1,1,0.01),
+                    ploidy = seq(0.5,3,0.05))
+
 confint <- get.ci(CP)
 ploidy   <- confint$max.x
 cellularity <- confint$max.y
@@ -101,10 +101,10 @@ cn.alleles <- baf.bayes(Bf = seg.s1$Bf, depth.ratio = seg.s1$depth.ratio,
 head(cbind(seg.s1, cn.alleles))
 
 # create mutation table:
-mut.tab   <- mutation.table(abf.data, mufreq.treshold = 0.15, 
+mut.tab   <- mutation.table(abf.data, mufreq.treshold = 0.15,
                             min.reads = 40, max.mut.types = 1,
                             min.type.freq = 0.9, segments = seg.s1)
-                            
+
 mut.tab.clean <- na.exclude(mut.tab)
 
 # Detect mutated alleles:

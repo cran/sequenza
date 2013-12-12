@@ -63,7 +63,7 @@ gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
 abf.data  <- read.abfreq(data.file, chr.name = 1)
 
 # Correct the coverage of the loaded chromosome:
-abf.data$adjusted.ratio <- abf.data$depth.ratio / 
+abf.data$adjusted.ratio <- abf.data$depth.ratio /
                            gc.vect[as.character(abf.data$GC.percent)]
 # Select the heterozygous positions
 abf.hom  <- abf.data$ref.zygosity == 'hom'
@@ -86,31 +86,31 @@ abf.b.win <- windowValues(x = abf.het$Bf,
              window = 1e6, overlap = 1,
              weight = round(x = abf.het$good.s.reads, digits = 0))
 # create mutation table:
-mut.tab   <- mutation.table(abf.data, mufreq.treshold = 0.15, 
+mut.tab   <- mutation.table(abf.data, mufreq.treshold = 0.15,
                             min.reads = 40, max.mut.types = 1,
                             min.type.freq = 0.9, segments = seg.s1)
 # chromosome view without parametes:
 chromosome.view(mut.tab = mut.tab[mut.tab$chromosome == "1",],
-                baf.windows = abf.b.win[[1]], 
+                baf.windows = abf.b.win[[1]],
                 ratio.windows = abf.r.win[[1]], min.N.ratio = 1,
                 segments = seg.s1[seg.s1$chromosome == "1",],
                 main = "Chromosome 1")
 
 # filter out small ambiguous segments, and conveniently weight the segments by size:
 seg.filtered <- seg.s1[(seg.s1$end.pos - seg.s1$start.pos) > 10e6, ]
-weights.seg  <- 150 + round((seg.filtered$end.pos - 
+weights.seg  <- 150 + round((seg.filtered$end.pos -
                              seg.filtered$start.pos) / 1e6, 0)
 # get the genome wide mean of the normalized depth ratio:
 avg.depth.ratio <- mean(gc.stats$adj[,2])
 # run the BAF model fit
 
-CP <- baf.model.fit(Bf = seg.filtered$Bf, depth.ratio = seg.filtered$depth.ratio, 
+CP <- baf.model.fit(Bf = seg.filtered$Bf, depth.ratio = seg.filtered$depth.ratio,
                     weight.ratio = weights.seg,
                     weight.Bf = weights.seg,
                     avg.depth.ratio = avg.depth.ratio,
                     cellularity = seq(0.1,1,0.01),
-                    ploidy = seq(0.5,3,0.05))  
-                    
+                    ploidy = seq(0.5,3,0.05))
+
 confint <- get.ci(CP)
 ploidy   <- confint$max.x
 cellularity <- confint$max.y
@@ -124,7 +124,7 @@ seg.s1 <- cbind(seg.s1, cn.alleles)
 
 # Chromosome view with estimated paramenters:
 chromosome.view(mut.tab = mut.tab[mut.tab$chromosome == "1",],
-                baf.windows = abf.b.win[[1]], 
+                baf.windows = abf.b.win[[1]],
                 ratio.windows = abf.r.win[[1]], min.N.ratio = 1,
                 segments = seg.s1[seg.s1$chromosome == "1",],
                 main = "Chromosome 1", cellularity = cellularity,

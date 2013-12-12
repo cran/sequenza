@@ -5,7 +5,7 @@
 \title{Normalize depth ratio values for GC-content bias}
 
 \description{
-  Detects and bias in the depth ratio values driven by varying GC-content. 
+  Detects and bias in the depth ratio values driven by varying GC-content.
 }
 
 \usage{
@@ -22,7 +22,7 @@ gc.norm(x, gc)
 
 \details{
   \code{gc.norm} detects bias in \code{x} driven by \code{gc}. Specifically, for each value of \code{gc}, summary statistics are calculated for the corresponding values of \code{x}. These statistics can then be used to normalize \code{x} for \code{gc}.
-  
+
   \code{gc.sample.stats} extracts depth ratio and GC-content from an ABfreq file, and then uses \code{gc.norm} on the results.
 
 }
@@ -49,7 +49,7 @@ abf.data  <- read.abfreq(data.file)
 gc.stats <- gc.norm(x = abf.data$depth.ratio,
                     gc = abf.data$GC.percent)
 gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
-abf.data$adjusted.ratio <- abf.data$depth.ratio / 
+abf.data$adjusted.ratio <- abf.data$depth.ratio /
                            gc.vect[as.character(abf.data$GC.percent)]
 
 # Alternatively gather genome wide GC-stats from raw file:
@@ -58,7 +58,7 @@ gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
 # Read only one chromosome:
 abf.data  <- read.abfreq(data.file, chr.name = 12)
 # Correct the coverage of the loaded chromosome:
-abf.data$adjusted.ratio <- abf.data$depth.ratio / 
+abf.data$adjusted.ratio <- abf.data$depth.ratio /
                            gc.vect[as.character(abf.data$GC.percent)]
 
    }

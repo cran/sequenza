@@ -14,7 +14,7 @@ types.matrix <- function(CNt.min = 1, CNt.max = 7, CNn = 2) {
    CNt           <- cn.ratio.vect * CNn
    mut.comb      <- lapply(CNt, FUN = function(x) seq(from = 0, to = x))
    times.muts    <- sapply(mut.comb, length)
-   data.frame(CNn = CNn, CNt = rep(CNt, times = times.muts), 
+   data.frame(CNn = CNn, CNt = rep(CNt, times = times.muts),
               Mt = unlist(mut.comb))
 }
 
@@ -29,7 +29,7 @@ model.points <- function(cellularity = 0.5, ploidy = 2,
 }
 
 # theoretical.baf <- function(cellularity = 0.5, CNt = 2, B = 1, CNn = 2){
-#    B.tot <- ((B * cellularity)  + (1 - cellularity)) / 
+#    B.tot <- ((B * cellularity)  + (1 - cellularity)) /
 #             ((CNt * cellularity) + CNn*(1 - cellularity))
 #    B.tot
 # }
@@ -39,7 +39,7 @@ theoretical.baf <- function(CNn, CNt, cellularity) {
    max.b <- function(CNt) {
       max.b.alleles <- CNt / 2
       if (CNt %% 2 != 0 ) {
-         max.b.alleles <- trunc(max.b.alleles) 
+         max.b.alleles <- trunc(max.b.alleles)
       }
       max.b.alleles
    }
@@ -58,14 +58,14 @@ theoretical.baf <- function(CNn, CNt, cellularity) {
       }
    }
    for (i in 1:length(res)) {
-      res[[i]] <- do.call(rbind,res[[i]]) 
+      res[[i]] <- do.call(rbind,res[[i]])
    }
    as.data.frame(do.call(rbind,res))
 }
 
 baf.model.points <- function (cellularity, ploidy, avg.depth.ratio,
                                CNn = 2, CNt.min = 1, CNt.max = 4) {
-   mufreq.depth.ratio <- model.points(cellularity = cellularity, ploidy = ploidy, 
+   mufreq.depth.ratio <- model.points(cellularity = cellularity, ploidy = ploidy,
                                       types = cbind(CNn = CNn, CNt = CNt.min:CNt.max, Mt = 0),
                                       avg.depth.ratio = avg.depth.ratio)
    model.d.ratio      <- cbind(CNt = CNt.min:CNt.max, depth.ratio = mufreq.depth.ratio[, 2])

@@ -1,12 +1,12 @@
 read.abfreq <- function (file, nrows = -1, fast = FALSE, gz = TRUE, header = TRUE,
-    colClasses = c('character', 'integer', 'character', 'integer', 
-      'integer', 'numeric', 'numeric', 'numeric', 'character', 
+    colClasses = c('character', 'integer', 'character', 'integer',
+      'integer', 'numeric', 'numeric', 'numeric', 'character',
       'numeric', 'numeric', "character", "character"), chr.name = NULL, n.lines = NULL, ...) {
    if (!is.null(n.lines) & is.null(chr.name)) fast <-  FALSE
    if(fast && nrows == -1) {
     if(gz) {
        if (!is.null(chr.name)) {
-          wc <- system(paste(paste('gzip -d -c | grep -c "^', chr.name, '\t"', sep = ''), file, sep = ' '), intern = TRUE)
+          wc <- system(paste('gzip -d -c ',file,' | grep -c "^', chr.name, '\t"', sep = ''), intern = TRUE)
        } else {
           wc <- system(paste('gzip -d -c', file, '| wc'), intern = TRUE)
        }
@@ -26,11 +26,11 @@ read.abfreq <- function (file, nrows = -1, fast = FALSE, gz = TRUE, header = TRU
   }
    if (!is.null(chr.name)) {
       if (gz) {
-         grep.part <- paste("gzip -d -c | grep '^", chr.name, "\t'", sep = "")
+         grep.part <- paste("gzip -d -c ", file," | grep '^", chr.name, "\t'", sep = "")
       } else {
          grep.part <- paste("grep '^", chr.name, "\t'", sep = "")
       }
-      abf.data   <- read.delim(pipe(paste(grep.part, file, sep = " ")), nrows = nrows, colClasses = colClasses, header = FALSE, ...)
+      abf.data   <- read.delim(pipe(grep.part), nrows = nrows, colClasses = colClasses, header = FALSE, ...)
       if (header == TRUE) {
          head       <- colnames(read.table(file, header = TRUE, nrows = 1 ))
          colnames(abf.data) <- head
@@ -61,7 +61,7 @@ read.abfreq <- function (file, nrows = -1, fast = FALSE, gz = TRUE, header = TRU
    }
 }
 
-read.acgt <- function (file, colClasses = c('character', 'integer', 'character', 'integer', 
+read.acgt <- function (file, colClasses = c('character', 'integer', 'character', 'integer',
                                             'integer', 'integer', 'integer', 'integer'), ...) {
    read.abfreq(file = file , colClasses = colClasses, ...)
 }
@@ -117,14 +117,14 @@ windowValues <- function(x, positions, chromosomes, window = 1e6, overlap = 0, v
       w.i       <- lapply(1:nrow(coords), function(a) do.call(c, w.i[idx.merge[[a]]]))
       xw.i      <- lapply(1:nrow(coords), function(a) do.call(c, xw.i[idx.merge[[a]]]))
       }
-      quartiles <- do.call(rbind, 
+      quartiles <- do.call(rbind,
                            lapply(X = x.i, FUN = function(a) quantile(a, probs = c(0.25, 0.75),
                                                                       na.rm = TRUE)))
       sum.w     <- sapply(X = w.i, FUN = function(a) sum(a, na.rm = TRUE))
       sum.xw    <- sapply(X = xw.i, FUN = function(a) sum(a, na.rm = TRUE))
       size      <- sapply(X = x.i, FUN = length)
       data.frame(coords, mean = sum.xw/sum.w, q0 = quartiles[,1],
-                 q1 = quartiles[,2], N = size, row.names = 1:length(size))            
+                 q1 = quartiles[,2], N = size, row.names = 1:length(size))
    }
    for (i in 1:length(mat.w)) {
       range.pos            <- range(mat.w[[i]]$pos, na.rm = TRUE)
@@ -148,7 +148,7 @@ windowValues <- function(x, positions, chromosomes, window = 1e6, overlap = 0, v
             cat(paste("chromosome:", names(mat.w)[i], "from:", range.pos[1],"to:", range.pos[2], "window:", window,"\n",sep=" "))
          }
       }
-      
+
       results[[i]] <- do.windows(x.i = x, w.i = w, xw.i = xw,
                                  breaks = beam.coords, overlap = overlap)
    }
@@ -167,10 +167,10 @@ get.ci <- function(cp.table, interval = 0.95) {
    values.x <- cp.table$x[maxs.x >= val.95.x]
    values.y <- cp.table$y[maxs.y >= val.95.y]
    up.x     <- max(values.x)
-   low.x    <- min(values.x) 
+   low.x    <- min(values.x)
    max.x    <- cp.table$x[which.max(maxs.x)]
    up.y     <- max(values.y)
-   low.y    <- min(values.y) 
+   low.y    <- min(values.y)
    max.y    <- cp.table$y[which.max(maxs.y)]
    results$values.x  <- cbind(x = cp.table$x, y = maxs.x)
    results$confint.x <- c(low.x, up.x)
@@ -182,7 +182,7 @@ get.ci <- function(cp.table, interval = 0.95) {
 }
 
 # merge.baf.ratio <- function(baf.segments, ratio.segments) {
-#    baf.table    <- lapply(1:length(baf.segments), FUN = function(x) cbind(chromosome = names(baf.segments)[x], 
+#    baf.table    <- lapply(1:length(baf.segments), FUN = function(x) cbind(chromosome = names(baf.segments)[x],
 #                                                                         as.data.frame(do.call(rbind, baf.segments[[x]]))))
 #    ratio.table  <- lapply(1:length(ratio.segments), FUN = function(x) cbind(chromosome = names(ratio.segments)[x],
 #                                                                           as.data.frame(do.call(rbind, ratio.segments[[x]]))))
@@ -211,7 +211,7 @@ mut.fractions <- function(AB.sample, Af) {
       base.val  <- as.numeric(substr(unlist(x), 2, nchar(x)))
       setNames(base.val, base.name)
    }
-   base.freqs <- lapply(X = base.mut, FUN = frequencify)   
+   base.freqs <- lapply(X = base.mut, FUN = frequencify)
    n.base.mut <- do.call(c, lapply(X = base.mut, FUN = length))
    max.fq <- function (x) {
       freq.rel <- base.freqs[[x]] / F[x]
@@ -239,13 +239,13 @@ mutation.table <- function(abf.tab, mufreq.treshold = 0.15, min.reads = 40, max.
       }
    }
    abf.dummy   <- data.frame(chromosome = chroms, n.base = 1, GC.percent = NA, good.s.reads = NA,
-                             adjusted.ratio = NA, F = 0, mutation = 'NA', stringsAsFactors= FALSE)   
+                             adjusted.ratio = NA, F = 0, mutation = 'NA', stringsAsFactors= FALSE)
    if (nrow(abf.tab) >= 1) {
       mu.fracts   <- mut.fractions(AB.sample = abf.tab$AB.sample, Af = abf.tab$Af)
       mufreq.filt <- mu.fracts$freq >= mufreq.treshold
       type.filt   <- mu.fracts$base.count <= max.mut.types
       prop.filt   <- mu.fracts$maj.base.freq <= min.type.freq
-      mut.type    <- paste(abf.tab$AB.germline, mu.fracts$base, sep = '>')   
+      mut.type    <- paste(abf.tab$AB.germline, mu.fracts$base, sep = '>')
       abf.tab     <- abf.tab[,c('chromosome', 'n.base', 'GC.percent', 'good.s.reads', 'adjusted.ratio')]
       abf.tab     <- cbind(abf.tab, F = mu.fracts$freq, mutation = mut.type)
       rbind(abf.tab[mufreq.filt, ], abf.dummy)
@@ -256,16 +256,16 @@ mutation.table <- function(abf.tab, mufreq.treshold = 0.15, min.reads = 40, max.
 
 find.breaks <- function(abf.baf, gamma = 80, kmin = 10, baf.thres = c(0, 0.5), verbose = FALSE, ...) {
    chromosome <- gsub(x = abf.baf$chromosome, pattern = "chr", replacement = "")
-   logR = data.frame(chrom = chromosome, 
+   logR = data.frame(chrom = chromosome,
                      pos = abf.baf$n.base,
                      s1 = log2(abf.baf$adjusted.ratio))
-   BAF = data.frame(chrom = chromosome, 
+   BAF = data.frame(chrom = chromosome,
                     pos = abf.baf$n.base,
                     s1 = abf.baf$Bf)
    logR.wins <- copynumber::winsorize(logR, verbose = verbose)
    allele.seg <- copynumber::aspcf(logR = logR.wins, BAF = BAF, baf.thres = baf.thres,
                        verbose = verbose, gamma = gamma, kmin = kmin, ...)
-    if (length(grep("chr", abf.baf$chromosome)) > 0) { 
+    if (length(grep("chr", abf.baf$chromosome)) > 0) {
         allele.seg$chrom <- paste("chr", allele.seg$chrom, sep = "")
     }
     allele.seg[allele.seg$end.pos - allele.seg$start.pos != 0,
@@ -290,7 +290,7 @@ segment.breaks <- function(abf.tab, breaks) {
       fact.r.i    <- cut(abf.tab[[i]]$n.base, breaks.vect)
       fact.b.i    <- cut(abf.b.i$n.base, breaks.vect)
       seg.i.s.r   <- sapply(X = split(abf.tab[[i]]$w.r, f = fact.r.i), FUN = length)
-      seg.i.s.b   <- sapply(X = split(abf.b.i$w.b, f = fact.b.i), FUN = length)      
+      seg.i.s.b   <- sapply(X = split(abf.b.i$w.b, f = fact.b.i), FUN = length)
       seg.i.rw    <- sapply(X = split(abf.tab[[i]]$rw, f = fact.r.i), FUN = function(a) sum(a, na.rm = TRUE))
       seg.i.w.r   <- sapply(X = split(abf.tab[[i]]$w.r, f = fact.r.i), FUN = function(a) sum(a, na.rm = TRUE))
       seg.i.bw    <- sapply(X = split(abf.b.i$bw, f = fact.b.i), FUN = function(a) sum(a, na.rm = TRUE))

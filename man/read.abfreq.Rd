@@ -9,12 +9,12 @@
 
 \usage{
 read.abfreq(file, nrows = -1, fast = FALSE, gz = TRUE, header = TRUE,
-            colClasses = c("character", "integer", "character", "integer", 
-            "integer", "numeric", "numeric", "numeric", "character", 
+            colClasses = c("character", "integer", "character", "integer",
+            "integer", "numeric", "numeric", "numeric", "character",
             "numeric", "numeric", "character", "character"),
             chr.name = NULL, n.lines = NULL, ...)
 
-read.acgt(file, colClasses = c("character", "integer", "character", "integer", 
+read.acgt(file, colClasses = c("character", "integer", "character", "integer",
           "integer", "integer", "integer", "integer"), ...)
 }
 
@@ -24,7 +24,7 @@ read.acgt(file, colClasses = c("character", "integer", "character", "integer",
 \item{fast}{logical. If TRUE the file will be pre-parsed to count the number of rows; in some cases this can speed up the file reading.}
 \item{gz}{logical. If TRUE (the default) the function expects a gzipped file.}
 \item{header}{logical, indicating whether the file contains the names of the variables as its first line.}
-\item{colClasses}{character.  A vector of classes to be assumed for the columns. By default the acgt and ABfreq format is expected.}           
+\item{colClasses}{character.  A vector of classes to be assumed for the columns. By default the acgt and ABfreq format is expected.}
 \item{chr.name}{if specified, only the selected chromosome will be extracted instead of the entire file.}
 \item{n.lines}{vector of length 2 specifying the first and last line to read from the file. If specified, only the selected portion of the file will be used. Requires the \code{sed} UNIX utility.}
 \item{...}{any arguments accepted by \code{read.delim}. For \code{read.acgt}, also any arguments accepted by \code{read.abfreq}.}
@@ -42,7 +42,7 @@ ABfreq is a tab separated text file with column headers. The file has currently 
 The remaining 10 columns contain the following information:
 \item{depth.normal}{read depth observed in the normal sample}
 \item{depth.sample}{read depth observed in the tumor sample}
-\item{depth.ratio}{ratio of \code{depth.sample} and \code{depth.normal}}  
+\item{depth.ratio}{ratio of \code{depth.sample} and \code{depth.normal}}
 \item{Af}{A-allele frequency observed in the tumor sample}
 \item{Bf}{B-allele frequency observed in the tumor sample}
 \item{ref.zygosity}{zygosity of the reference sample. "hom" corresponds to AA or BB, whereas "het" corresponds to AB or BA}

@@ -1,7 +1,7 @@
 cp.plot <- function (cp.table, ...) {
-   #colorgram(x = cp.table$x, y = cp.table$y, z = log(cp.table$z), 
-   #    colFn = heat, map = map, outlier = outlier, las = 1, 
-   #    xlab = "ploidy", ylab = "Cellularity", zlab = "log-likelihood", 
+   #colorgram(x = cp.table$x, y = cp.table$y, z = log(cp.table$z),
+   #    colFn = heat, map = map, outlier = outlier, las = 1,
+   #    xlab = "ploidy", ylab = "Cellularity", zlab = "log-likelihood",
    #    ...)
    colorgram(x = cp.table$x, y = cp.table$y, z = matrix(rank(cp.table$z),
                                                         nrow = nrow(cp.table$z)), colFn = colorRampPalette(c('white', 'lightblue')),
@@ -9,14 +9,14 @@ cp.plot <- function (cp.table, ...) {
              ...)
 }
 
-cp.plot.contours <- function(cp.table, likThresh = c(0.95), 
+cp.plot.contours <- function(cp.table, likThresh = c(0.95),
                              col = palette(), legend.pos = 'bottomright', pch = 18, ...) {
    znormsort <- sort(cp.table$z, decreasing = TRUE)
    znormcumLik <- cumsum(znormsort)
    n <- sapply(likThresh, function(x) sum(znormcumLik < x) + 1)
    LikThresh <- znormsort[n]
    names(LikThresh) <- paste0(likThresh * 100, '%')
-   
+
    contour(cp.table, levels = znormsort[n], col = col,
            drawlabels = FALSE,
            xlab= "Ploidy", ylab = "Cellularity", ...)
@@ -24,7 +24,7 @@ cp.plot.contours <- function(cp.table, likThresh = c(0.95),
    points(x = cp.table$x[max.xy[, "row"]],
           y = cp.table$y[max.xy[, "col"]], pch = pch)
    if(!is.na(legend.pos)) {
-      legend(legend.pos, legend = c(paste("C.R.", names(LikThresh), sep = " "), "Point estimate"), 
+      legend(legend.pos, legend = c(paste("C.R.", names(LikThresh), sep = " "), "Point estimate"),
              col = c(col[1:length(LikThresh)], "black"), lty = c(rep(1, length(LikThresh)), NA),
              pch = c(rep(NA, length(LikThresh)), pch), border = NA, bty = "n")
    }
@@ -74,17 +74,17 @@ plotWindows <- function(abf.window, m.lty = 1, m.lwd = 3,
                          m.col = "black", q.bg = "lightblue", log2.plot = FALSE,
                          n.min = 1, xlim, ylim, add = FALSE, ...) {
    if (log2.plot == TRUE) {
-      abf.window[, c(3, 4, 5)] <- log2(abf.window[, c(3, 4, 5)]) 
+      abf.window[, c(3, 4, 5)] <- log2(abf.window[, c(3, 4, 5)])
    }
    if(!add) {
-      if(missing(xlim)) 
+      if(missing(xlim))
          xlim <- c(abf.window[1, 1], abf.window[nrow(abf.window), 2])
       if(missing(ylim))
          ylim <- c(min(abf.window[, 4], na.rm = TRUE), max(abf.window[, 5], na.rm = TRUE))
-      plot(xlim, ylim, type = "n", ...)  
+      plot(xlim, ylim, type = "n", ...)
    }
    abf.window <- abf.window[abf.window[, 6] >= n.min, ]
-   rect(xleft = abf.window[, 1], ybottom = abf.window[, 4], 
+   rect(xleft = abf.window[, 1], ybottom = abf.window[, 4],
         xright = abf.window[, 2], ytop = abf.window[, 5],
         col = q.bg, border = NA)
    segments(y0 = abf.window[, 3], x0 = abf.window[, 1] , x1 = abf.window[, 2], lty = m.lty, lwd = m.lwd, col = m.col)
@@ -143,8 +143,8 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
             if (CNn == 2) {
                data.model$baf <- rbind(c(0,0,0.5,0), data.model$baf)
             } else {
-               data.model$baf <- rbind(c(0,0,1,0), data.model$baf)                  
-            }   
+               data.model$baf <- rbind(c(0,0,1,0), data.model$baf)
+            }
             types          <- types.matrix(CNt.min = CNt.min, CNt.max = CNt.max, CNn = CNn)
             data.model$muf <- cbind(types, model.points(cellularity = cellularity, ploidy = ploidy,
                                                    types = types, avg.depth.ratio = avg.depth.ratio))
@@ -161,7 +161,7 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
    } else {
       min.x <- min(c(min(baf.windows$start), min(ratio.windows$start), min(mut.tab$n.base)))
       max.x <- max(c(max(baf.windows$end), max(ratio.windows$end), max(mut.tab$n.base)))
-      xlim <- c(min.x, max.x)      
+      xlim <- c(min.x, max.x)
       par(mar = c(0, 4, 0, 10), oma = c(5, 0, 4, 0), mfcol = c(3,1), xaxt='n', xpd = TRUE)
       mutation.colors <- c(
          'A>C' = rgb(red =   0, green = 178, blue = 238, alpha = 120, maxColorValue = 255),
@@ -176,8 +176,8 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
          'G>C' = rgb(red = 127, green =   0, blue = 255, alpha = 120, maxColorValue = 255),
          'C>T' = rgb(red = 255, green = 215, blue =   0, alpha = 120, maxColorValue = 255),
          'G>A' = rgb(red = 255, green = 215, blue =   0, alpha = 120, maxColorValue = 255)
-      )  
-      plot(x = mut.tab$n.base, y = mut.tab$F, 
+      )
+      plot(x = mut.tab$n.base, y = mut.tab$F,
            ylab = "Mutant allele frequency", las = 1, pch = 19,
            col = c(mutation.colors, 'NA' = NA)[as.character(mut.tab$mutation)],
            ylim = c(min(mut.tab$F, na.rm = TRUE), 1), xlim = xlim)
@@ -190,10 +190,10 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
       if (!is.null(segments)){
          if (vlines) {
             abline(v = segments$end.pos, lwd = 1, lty = 2)
-         }   
+         }
          if (!is.null(data.model)) {
             for (i in 1:nrow(segments)) {
-                segments(x0 = segments$start.pos[i], x1 = segments$end.pos[i], 
+                segments(x0 = segments$start.pos[i], x1 = segments$end.pos[i],
                          y0 = unique(data.model$muf$mufreqs[data.model$muf$CNt == segments$CNt[i]]), lwd = model.lwd, lty = model.lty, col = model.col)
             }
          }
@@ -209,10 +209,10 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
             axis(side = 4, line = 0, las = 1,
                  labels = data.model$baf$B[data.model$baf$CNt == segments$CNt[nrow(segments)]],
                  at = data.model$baf$BAF[data.model$baf$CNt == segments$CNt[nrow(segments)]])
-            mtext(text = "Number of B alleles", side = 4, line = 2, cex = par("cex.lab")*par("cex"))         
+            mtext(text = "Number of B alleles", side = 4, line = 2, cex = par("cex.lab")*par("cex"))
          }
       }
-      plotWindows(baf.windows, ylab = "B allele frequency", 
+      plotWindows(baf.windows, ylab = "B allele frequency",
                   xlim = xlim, ylim = c(0, 0.5), las = 1,
                   n.min = min.N.baf, add = TRUE)
       if (vlines) {
@@ -222,29 +222,29 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
       if (BAF.style == "lines") {
          if (!is.null(data.model)) {
             for (i in 1:nrow(segments)) {
-               segments(x0 = segments$start.pos[i], x1 = segments$end.pos[i], 
+               segments(x0 = segments$start.pos[i], x1 = segments$end.pos[i],
                         y0 = unique(data.model$baf$BAF[data.model$baf$CNt == segments$CNt[i]]), lwd = model.lwd, lty = model.lty, col = model.col)
             }
          }
       }
    }
    else {
-      plotWindows(baf.windows, ylab = "B allele frequency", 
+      plotWindows(baf.windows, ylab = "B allele frequency",
                   xlim = xlim, ylim = c(0, 0.5), las = 1,
                   n.min = min.N.baf)
    }
-   plotWindows(ratio.windows, ylab = "Depth ratio", 
+   plotWindows(ratio.windows, ylab = "Depth ratio",
                las = 1, n.min = min.N.ratio, ylim = c(0, 2.5))
    if (!is.null(segments)){
       if (vlines) {
          abline(v = segments$end.pos, lwd = 1, lty = 2)
-      }   
+      }
       segments(x0 = segments$start.pos, y0 = segments$depth.ratio, x1=segments$end.pos, y1 = segments$depth.ratio, col = "red", lwd = 3)
       if (!is.null(data.model)) {
          ratios.theoric <- unique(data.model$muf[,c('CNt', 'depth.ratio')])
 
          segments(x0 = rep(min(segments$start.pos, na.rm =TRUE), times = nrow(ratios.theoric)),
-                  x1 = rep(max(segments$end.pos, na.rm = TRUE), times = nrow(ratios.theoric)), 
+                  x1 = rep(max(segments$end.pos, na.rm = TRUE), times = nrow(ratios.theoric)),
                   y0 = ratios.theoric$depth.ratio, lwd = model.lwd, lty = model.lty, col = model.col)
          #text(x = rep(min(segments$start.pos, na.rm =TRUE), times = nrow(ratios.theoric)),
          #     y = ratios.theoric$depth.ratio, labels = ratios.theoric$CNt, pos = 2, offset = 0.5, cex = 0.8)
@@ -256,11 +256,11 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
    par(xaxt='s')
    axis(labels = as.character(round(seq(xlim[1]/1e6, xlim[2]/1e6, by = x.chr.space), 0)), side = 1 , line = 0,
         at = seq(xlim[1], xlim[2], by = 1e6 * x.chr.space), outer = FALSE, cex = par("cex.axis")*par("cex"))
-   mtext("Position (Mb)", side = 1, line = 3, outer = FALSE, cex = par("cex.lab")*par("cex"))   
+   mtext("Position (Mb)", side = 1, line = 3, outer = FALSE, cex = par("cex.lab")*par("cex"))
    mtext(main, 3, outer = TRUE, cex = par("cex.main")*par("cex"), line = 2)
 }
 
-#genome.view <- function(baf.windows, ratio.windows, segments = NULL, main = "", 
+#genome.view <- function(baf.windows, ratio.windows, segments = NULL, main = "",
 #                            min.N.baf = 1, min.N.ratio = 1e4, CNn = rep(2, length(ratio.windows)),
 #                            cellularity = NULL, ploidy = NULL, avg.depth.ratio = NULL) {
 #   chr.metrics <- list()
@@ -269,7 +269,7 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
 #   }
 #   chr.metrics <- do.call(rbind, chr.metrics)
 #   x0 <- chr.metrics[1,1]
-#   
+#
 #}
 
 genome.view <- function(seg.cn, info.type = "AB", ...) {
@@ -309,10 +309,10 @@ genome.view <- function(seg.cn, info.type = "AB", ...) {
            xaxt='n', yaxt = 'n', xaxs = "i", ...)
       axis(labels = min(abs.segments$CNt):max(abs.segments$CNt),
            at = min(abs.segments$CNt):max(abs.segments$CNt),
-           side = 2, line = 0, las = 1)     
+           side = 2, line = 0, las = 1)
       #abline(h = c(min(abs.segments$CNt):max(abs.segments$CNt)), lty = 2)
       segments(x0 = abs.segments$abs.start, x1 = abs.segments$abs.end,
-               y0 = abs.segments$CNt, y1= abs.segments$CNt, col="red", lwd = 5, lend = 1)    
+               y0 = abs.segments$CNt, y1= abs.segments$CNt, col="red", lwd = 5, lend = 1)
    }
    abline(v = c(0, seg.max), lty = 3)
    for (i in 1:length(abs.list)){
@@ -327,4 +327,3 @@ genome.view <- function(seg.cn, info.type = "AB", ...) {
         at = seq(abs.list[[1]]$abs.start[1], abs.list[[1]]$abs.end[nrow(abs.list[[1]])], by = 5e7), outer = FALSE, cex = par("cex.axis")*par("cex"),
         side = 1 , line = 1)
 }
-

@@ -6,7 +6,7 @@
 \title{Calculates cellularity-dependent model points}
 
 \description{
-  Calculates the theoretically expected values of BAF, mutation frequency or depth ratio for given values of cellularity, DNA-content and copy number. 
+  Calculates the theoretically expected values of BAF, mutation frequency or depth ratio for given values of cellularity, DNA-content and copy number.
 }
 
 \usage{
@@ -29,12 +29,12 @@ theoretical.mufreq(cellularity, CNn = 2, CNt = 2, Mt = 1)
 
 \details{
   The observed B-allele frequency, depth ratio and mutation frequency are affected by the cellularity of the tumor sample, which is the inverse of the degree of contamination by normal cells.
-  Three functions are included, which for a given cellularity produce the values of B-allele frequency, mutation frequency or depth ratio that can be theoretically expected. 
-  
-  \code{theoretical.baf} returns a dataframe with the possible copy numbers of A and B alleles, along with their corresponding B-allele frequency and the total copy number state (always the sum of A+B). 
-  
+  Three functions are included, which for a given cellularity produce the values of B-allele frequency, mutation frequency or depth ratio that can be theoretically expected.
+
+  \code{theoretical.baf} returns a dataframe with the possible copy numbers of A and B alleles, along with their corresponding B-allele frequency and the total copy number state (always the sum of A+B).
+
   \code{theoretical.depth.ratio} returns the theoretical depth ratio at a single specific position, given values of cellularity, ploidy, the ratio between the tumor copy number and the normal copy number at that position, and the average depth ratio of the sample.
-  
+
   \code{theoretical.mufreq} returns the theoretical mutation frequency at a single specific position, given values of cellularity, copy number in the normal and tumor samples at that position, and the number of mutated alleles.
 }
 

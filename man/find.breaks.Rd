@@ -9,12 +9,12 @@
 
 \usage{
 find.breaks(abf.baf, gamma = 80, kmin = 10, baf.thres = c(0, 0.5), verbose = FALSE, ...)
-segment.breaks(abf.tab, breaks) 
+segment.breaks(abf.tab, breaks)
 }
 
 \arguments{
   \item{abf.baf}{an ABfreq file containing only the heterozygous positions.}
-  \item{abf.tab}{a complete ABfreq file.}  
+  \item{abf.tab}{a complete ABfreq file.}
   \item{gamma, kmin, baf.thres, verbose}{arguments passed to \code{aspcf}.}
   \item{breaks}{breaks as output \code{find.breaks}.}
   \item{...}{additional arguments passed to \code{aspcf}.}
@@ -38,7 +38,7 @@ gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
 abf.data  <- read.abfreq(data.file, chr.name = 12)
 
 # Correct the coverage of the loaded chromosome:
-abf.data$adjusted.ratio <- abf.data$depth.ratio / 
+abf.data$adjusted.ratio <- abf.data$depth.ratio /
                            gc.vect[as.character(abf.data$GC.percent)]
 # Select the heterozygous positions
 abf.hom  <- abf.data$ref.zygosity == 'hom'

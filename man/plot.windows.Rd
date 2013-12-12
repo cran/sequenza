@@ -41,15 +41,15 @@ abf.ratio <- windowValues(x = abf.data$depth.ratio,
                            positions = abf.data$n.base,
                            chromosomes = abf.data$chromosome, window = 1e6,
                            weight = abf.data$depth.normal, start.coord = 1, overlap = 1)
-                           
-plotWindows(abf.r.win[[1]], log2.plot = FALSE, 
-            ylab = "Depth ratio", xlab = "Position (bases)", 
-            main = names(abf.r.win)[1], las = 1, n.min = 1, 
+
+plotWindows(abf.r.win[[1]], log2.plot = FALSE,
+            ylab = "Depth ratio", xlab = "Position (bases)",
+            main = names(abf.r.win)[1], las = 1, n.min = 1,
             ylim = c(0, 2.5))
 
-plotWindows(abf.r.win[[17]], log2.plot = FALSE, 
-            ylab = "Depth ratio", xlab = "Position (bases)", 
-            main = names(abf.r.win)[1], las = 1, n.min = 1, 
+plotWindows(abf.r.win[[17]], log2.plot = FALSE,
+            ylab = "Depth ratio", xlab = "Position (bases)",
+            main = names(abf.r.win)[1], las = 1, n.min = 1,
             ylim = c(0, 2.5))
    }
 }

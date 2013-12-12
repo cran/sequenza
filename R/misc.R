@@ -19,9 +19,8 @@ mclapplyPb <- function(X, FUN, mc.cores = 2, ...) {
 #   max.x  <- ceiling(x)
 #   diff.x <- max.x - x
 #     if (diff.x == 0.5) {
-#        ceiling(x)       
+#        ceiling(x)
 #     } else{
 #        round(x)
 #     }
 # }
-

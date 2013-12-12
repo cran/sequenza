@@ -9,7 +9,7 @@
 
 \usage{
 mutation.table(abf.tab, mufreq.treshold = 0.15, min.reads = 40,
-               max.mut.types = 3, min.type.freq = 0.9, segments = NULL)               
+               max.mut.types = 3, min.type.freq = 0.9, segments = NULL)
 }
 
 \arguments{
@@ -23,7 +23,7 @@ mutation.table(abf.tab, mufreq.treshold = 0.15, min.reads = 40,
 
 \details{
   Calling mutations in impure tumor samples is a difficult task, because the degree of contamination by normal cells affects the measured mutation frequency. In highly impure samples, where the normal cells comprise the major component of the sample, mutations can be so diluted that it will even be difficult to distinguish them from sequencing errors.
-  
+
   The function \code{mutation.table} tries to separate true mutations from sequencing errors, based on the given threshold. In samples with low contamination, it should even be possible to catch sub-clonal mutations using this function.
 }
 
@@ -45,10 +45,10 @@ abf.data  <- read.abfreq(data.file)
 gc.stats <- gc.norm(x = abf.data$depth.ratio,
                     gc = abf.data$GC.percent)
 gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
-abf.data$adjusted.ratio <- abf.data$depth.ratio / 
-                           gc.vect[as.character(abf.data$GC.percent)]     
+abf.data$adjusted.ratio <- abf.data$depth.ratio /
+                           gc.vect[as.character(abf.data$GC.percent)]
 # Subset mutations, apply mutation frequency treshold.
-mut.tab   <- mutation.table(abf.data, mufreq.treshold = 0.15, 
+mut.tab   <- mutation.table(abf.data, mufreq.treshold = 0.15,
                             min.reads = 40, max.mut.types = 1,
                             min.type.freq = 0.9)
 mut.tab <- na.exclude(mut.tab)
