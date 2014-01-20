@@ -19,63 +19,73 @@
 
 
 ###################################################
-### code chunk number 4: loadLib
+### code chunk number 4: varscan (eval = FALSE)
+###################################################
+## cnv <- read.table("varscan.copynumber", header = TRUE, sep = "\t")
+## snp <- read.table("varscan.snp", header = TRUE, sep = "\t")
+## abf.data <- VarScan2abfreq(varscan.snp = snp, varscan.copynumber = cnv)
+## 
+## write.table(abf.data, "my.sample.abfreq", col.names = TRUE, row.names = FALSE, sep = "\t")
+
+
+###################################################
+### code chunk number 5: loadLib
 ###################################################
 library("sequenza")
 
 
 ###################################################
-### code chunk number 5: setFile (eval = FALSE)
+### code chunk number 6: setFile (eval = FALSE)
 ###################################################
 ## data.file <-  system.file("data", "abf.data.abfreq.txt.gz", package = "sequenza")
 ## data.file
 
 
 ###################################################
-### code chunk number 6: setFile2
+### code chunk number 7: setFile2
 ###################################################
 data.file <-  system.file("data", "abf.data.abfreq.txt.gz", package = "sequenza")
 
 
 ###################################################
-### code chunk number 7: readAfreqChr (eval = FALSE)
+### code chunk number 8: readAfreqChr (eval = FALSE)
 ###################################################
 ## abf.data <- read.abfreq(data.file, chr.name = "1")
 
 
 ###################################################
-### code chunk number 8: readAfreq
+### code chunk number 9: readAfreq
 ###################################################
 abf.data <- read.abfreq(data.file)
 
 
 ###################################################
-### code chunk number 9: sequenza.Rnw:153-154
+### code chunk number 10: sequenza.Rnw:169-170
 ###################################################
 str(abf.data, vec.len = 2)
 
 
 ###################################################
-### code chunk number 10: depthRGCnormall
+### code chunk number 11: depthRGCnormall
 ###################################################
 gc.stats <- gc.sample.stats(data.file)
 
 
 ###################################################
-### code chunk number 11: gcstr
+### code chunk number 12: gcstr
 ###################################################
 str(gc.stats)
 
 
 ###################################################
-### code chunk number 12: depthRGCnorm (eval = FALSE)
+### code chunk number 13: depthRGCnorm (eval = FALSE)
 ###################################################
 ## gc.stats <- gc.norm(x = abf.data$depth.ratio,
 ##                     gc = abf.data$GC.percent)
 
 
 ###################################################
-### code chunk number 13: useGCmedians
+### code chunk number 14: useGCmedians
 ###################################################
 gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
 
@@ -84,7 +94,7 @@ abf.data$adjusted.ratio <- abf.data$depth.ratio /
 
 
 ###################################################
-### code chunk number 14: GCfig
+### code chunk number 15: GCfig
 ###################################################
 par(mfrow = c(1,2), cex = 1, las = 1, bty = 'l')
 matplot(gc.stats$gc.values, gc.stats$raw,
@@ -97,14 +107,14 @@ hist2(abf.data$depth.ratio, abf.data$adjusted.ratio,
 
 
 ###################################################
-### code chunk number 15: sequenzaExtract
+### code chunk number 16: sequenzaExtract
 ###################################################
 test <- sequenza.extract(data.file)
 names(test)
 
 
 ###################################################
-### code chunk number 16: 3panelsPlot
+### code chunk number 17: 3panelsPlot
 ###################################################
 
 chromosome.view(mut.tab = test$mutations[[1]], baf.windows = test$BAF[[1]], 
@@ -113,32 +123,39 @@ chromosome.view(mut.tab = test$mutations[[1]], baf.windows = test$BAF[[1]],
 
 
 ###################################################
-### code chunk number 17: sequenzaFit (eval = FALSE)
+### code chunk number 18: sequenzaFit (eval = FALSE)
 ###################################################
 ## CP.example <- sequenza.fit(test)
 
 
 ###################################################
-### code chunk number 18: loadCP
+### code chunk number 19: loadCP
 ###################################################
 data(CP.example)
 
 
 ###################################################
-### code chunk number 19: ConfIntCP
+### code chunk number 20: sequenzaRes (eval = FALSE)
+###################################################
+## sequenza.results(sequenza.extract = test, sequenza.fit = CP.examples,
+##                  sample.id = "Test", out.dir="TEST", )
+
+
+###################################################
+### code chunk number 21: ConfIntCP
 ###################################################
 cint <- get.ci(CP.example)
 
 
 ###################################################
-### code chunk number 20: CPplot
+### code chunk number 22: CPplot
 ###################################################
 cp.plot(CP.example)
 cp.plot.contours(CP.example, add = TRUE, likThresh = c(0.999))
 
 
 ###################################################
-### code chunk number 21: CPplotCI
+### code chunk number 23: CPplotCI
 ###################################################
 par(mfrow = c(2,2))
 cp.plot(CP.example)
@@ -164,7 +181,7 @@ abline(v = cint$max.x, lty = 2, lwd = 0.5)
 
 
 ###################################################
-### code chunk number 22: seParam
+### code chunk number 24: seParam
 ###################################################
 cellularity <- cint$max.y
 cellularity
@@ -173,13 +190,13 @@ ploidy
 
 
 ###################################################
-### code chunk number 23: avgDepth
+### code chunk number 25: avgDepth
 ###################################################
 avg.depth.ratio <- mean(test$gc$adj[, 2])
 
 
 ###################################################
-### code chunk number 24: mmufBayes
+### code chunk number 26: mmufBayes
 ###################################################
 mut.tab     <- na.exclude(do.call(rbind, test$mutations))
 mut.alleles <- mufreq.bayes(mufreq = mut.tab$F,
@@ -193,7 +210,7 @@ head(cbind(mut.tab[,c("chromosome","n.base","F","adjusted.ratio", "mutation")],
 
 
 ###################################################
-### code chunk number 25: bafBayes
+### code chunk number 27: bafBayes
 ###################################################
 seg.tab     <- na.exclude(do.call(rbind, test$segments))
 cn.alleles <- baf.bayes(Bf = seg.tab$Bf, depth.ratio = seg.tab$depth.ratio,
@@ -205,7 +222,7 @@ head(seg.tab)
 
 
 ###################################################
-### code chunk number 26: chrViewWithCP
+### code chunk number 28: chrViewWithCP
 ###################################################
 chromosome.view(mut.tab = test$mutations[[3]], baf.windows = test$BAF[[3]], 
                 ratio.windows = test$ratio[[3]],  min.N.ratio = 1,
@@ -216,7 +233,7 @@ chromosome.view(mut.tab = test$mutations[[3]], baf.windows = test$BAF[[3]],
 
 
 ###################################################
-### code chunk number 27: genomeViewCNt
+### code chunk number 29: genomeViewCNt
 ###################################################
 
 genome.view(seg.cn = seg.tab, info.type = "CNt")
@@ -225,7 +242,7 @@ legend("bottomright", bty="n", c("Tumor copy number"),col = c("red"),
 
 
 ###################################################
-### code chunk number 28: genomeViewAB
+### code chunk number 30: genomeViewAB
 ###################################################
 genome.view(seg.cn = seg.tab, info.type = "AB")
 legend("bottomright", bty = "n", c("A-allele","B-allele"), col= c("red", "blue"), 

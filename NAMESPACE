@@ -6,24 +6,33 @@ export(
 	windowValues,
 	get.ci,
 	mutation.table,
-  find.breaks,
-  segment.breaks,
+   find.breaks,
+   segment.breaks,
 	mufreq.bayes,
 	baf.bayes,
 	mufreq.model.fit,
 	baf.model.fit,
-  cp.plot,
-  cp.plot.contours,
+   cp.plot,
+   cp.plot.contours,
 	plotWindows,
 	chromosome.view,
-  genome.view,
+   genome.view,
 	theoretical.depth.ratio,
 	theoretical.mufreq,
 	types.matrix,
 	model.points,
 	theoretical.baf,
-  sequenza.fit,
-  sequenza.extract
+   sequenza.fit,
+   sequenza.extract,
+   sequenza.results,
+   VarScan2abfreq
+)
+
+# Import all packages listed as Imports or Depends
+import(
+ copynumber,
+ parallel,
+ squash
 )
 
 

@@ -556,7 +556,7 @@ def RPy2sqeezeABfreq(abfreq, loop, tag, out, kmin, gamma, mufreq_treshold):
    res = robjects.ListVector({'BAF' : windows_baf, 'ratio' : windows_ratio, 'mutations' : mutation_list,
                'segments' : segments_list, 'chromosomes' : chr_vect, 'gc' : gc_stats})
    robjects.r('assign')(x = tag + '_sequenza_extract', value = res)
-   robjects.r('save')(list = tag + '_sequenza_extract', file = subdir + '/' + tag + '_sequenza_extract.Rdata')
+   robjects.r('save')(list = tag + '_sequenza_extract', file = subdir + '/' + tag + '_sequenza_extract.RData')
    # robjects.r('save')(list = tag + '_windows_ratio', file = subdir + '/' + tag + '_windows_ratio.Rdata')
    # robjects.r('write.table')(x = gc_stats.rx2('raw'), file = subdir +'/' + tag + '_raw_GC.txt', col_names = True, row_names = False, sep = "\t")
    # robjects.r('write.table')(x = gc_stats.rx2('adj'), file = subdir +'/' + tag + '_adj_GC.txt', col_names = True, row_names = False, sep = "\t")
@@ -577,7 +577,7 @@ def RPy2doAllSequenza(data_dir, is_male = True, tag = None, X = "X", Y = "Y", nc
    xy = {'X':X, 'Y' : Y}
    if tag == None:
       tag = os.path.split(data_dir)[-1]
-   robjects.r.load(data_dir +'/' + tag + '_sequenza_extract.Rdata')
+   robjects.r.load(data_dir +'/' + tag + '_sequenza_extract.RData')
    extract = robjects.r.eval(robjects.r('as.name')(tag + '_sequenza_extract'))
    windows_Bf    = extract.rx2('BAF')
    windows_ratio = extract.rx2('ratio')
@@ -723,7 +723,7 @@ def RPy2SequenzaOverride(data_dir, is_male = True, tag = None, X = "X", Y = "Y",
    xy = {'X':X, 'Y' : Y}
    if tag == None:
       tag = os.path.split(data_dir)[-1]
-   robjects.r.load(data_dir +'/' + tag + '_sequenza_extract.Rdata')
+   robjects.r.load(data_dir +'/' + tag + '_sequenza_extract.RData')
    extract = robjects.r.eval(robjects.r('as.name')(tag + '_sequenza_extract'))
    windows_Bf    = extract.rx2('BAF')
    windows_ratio = extract.rx2('ratio')

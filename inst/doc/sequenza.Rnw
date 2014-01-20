@@ -88,9 +88,11 @@ Pileup files can be generated using \texttt{samtools}\cite{Li2009}. The genome s
    samtools mpileup -f hg19.fasta -Q 20 tumor.bam | gzip > tumor.pileup.gz
 \end{lstlisting}
 
-\subsection{Processing the data with \textit{sequenza-utils.py}.}
+Alternatively, it is possible to use the output of VarScan2\cite{Koboldt2012} (http://varscan.sourceforge.net), which would require a similar approach and the generation of pileups as well.
 
-FFor convenience and efficiency we have implemented pre-processing algorithms in an standalone (not called from R) Python program. Although, the program is provided with the package; its exact location can be found like this:
+\subsection{Obtainig the required ABfreq file.}
+\subsubsection{Processing the data with \textit{sequenza-utils.py}.}
+For convenience and efficiency we have implemented pre-processing algorithms in a standalone (not called from R) Python program. Although, the program is provided with the package; its exact location can be found like this:
 
 <<label=findexec, echo=TRUE, eval=FALSE>>=
 system.file("exec", "sequenza-utils.py", package="sequenza")
@@ -120,6 +122,20 @@ If you don't have yet the pileup, or you are not interested on storing the pileu
                                    -s tumor.fifo | gzip > out.abfreq.gz
    rm normal.fifo tumor.fifo
 \end{lstlisting}
+
+\subsubsection{Converting VarScan2 output to ABfreq.}
+Since many projects might already being processed trough VarScan2, it can be convenient to be able to import such results.
+For this purpose a simple function is provided within the package, to convert the output of the \textit{somatic} and \textit{copynumber} programs of the VarScan2 suite into the \textit{ABfreq} format.
+
+<<label=varscan, echo=TRUE, eval=FALSE>>=
+cnv <- read.table("varscan.copynumber", header = TRUE, sep = "\t")
+snp <- read.table("varscan.snp", header = TRUE, sep = "\t")
+abf.data <- VarScan2abfreq(varscan.snp = snp, varscan.copynumber = cnv)
+
+write.table(abf.data, "my.sample.abfreq", col.names = TRUE, row.names = FALSE, sep = "\t")
+@
+
+For whole genome sequencing the information in the \textit{varscan.snp} could be enough to estimate the ploidy and cellularity, and define the copy number and mutations, hence the \textit{varscan.copynumber} argument is optional, but it is strongly suggested to use it in case of exome sequencing.
 
 \section{Exploring the \textit{ABfreq} file and GC-correction details}
 
@@ -162,9 +178,10 @@ Each aligned base, in the next generation sequencing, is associated with a quali
 
 \subsection{GC-normalization}
 
-The GC content bias is affecting most of the sample, however some samples are more biased than th other. We attempt to remove this bias by normalizing with the mean depth ratio value of a corresponding GC content value.
+The GC content bias is affecting most of the sample, however some samples are more biased than others. We attempt to remove this bias by normalizing with the mean depth ratio value of a corresponding GC content value.
 
 It is possible to gather GC-content information from the entire file and in the meantime map the chromosome position in the file (to fast access chromosome by chromosome later, see ?read.abfreq):
+
 <<label=depthRGCnormall, echo=TRUE, results=hide>>=
 gc.stats <- gc.sample.stats(data.file)
 @
@@ -259,7 +276,19 @@ CP.example <- sequenza.fit(test)
 data(CP.example)
 @
 
-The result is a list in the format \textit{list(x ,y, z)} directly usable by standard graphical function, like \textit{image}. However we provide few customized functions do better display and explore the results, detect the confidence intervals, and finally retrieve the point estimate.
+The result is a list in the format \textit{list(x ,y, z)} directly usable by standard graphical function, like \textit{image}. However we provide few customized functions to explore and better display the results, detect the confidence intervals, and finally retrieve the point estimate.
+
+\subsection{Results of model fitting}
+
+The last part of the workflow, would be to apply the estimated parameters. There is a all in one function that would plot and save the results, giving control on file names and output  directory:
+
+<<label=sequenzaRes, echo=TRUE, eval=FALSE, results=hide>>=
+sequenza.results(sequenza.extract = test, sequenza.fit = CP.examples,
+                 sample.id = "Test", out.dir="TEST", )
+@
+
+However this standard way of present the result would satisfy the usual situation, it is possible to create alternative wrapper by using functions on the following sub-sections.
+
 \subsubsection{Confidence intervals, confidence region and point estimate}
 
 The object resulting from \textit{sequenza.fit} have two vectors, x and y, indicating respectively the tested values of ploidy and cellularity, and a matrix z with x columns and y rows, containing the estimated log-likelihood.
@@ -385,7 +414,7 @@ genome.view(seg.cn = seg.tab, info.type = "CNt")
 legend("bottomright", bty="n", c("Tumor copy number"),col = c("red"), 
        inset = c(0, -0.4), pch=15, xpd = TRUE)
 @
-      \caption{Genome-whide copy number profile obtained from exome sequencing.}
+      \caption{Genome-wide copy number profile obtained from exome sequencing.}
       \label{fig:genomeViewCNt}
 \end{figure}
 
@@ -396,7 +425,7 @@ genome.view(seg.cn = seg.tab, info.type = "AB")
 legend("bottomright", bty = "n", c("A-allele","B-allele"), col= c("red", "blue"), 
        inset = c(0, -0.45), pch = 15, xpd = TRUE)
 @
-      \caption{Genome-whide A and B alleles profile obtained from exome sequencing.}
+      \caption{Genome-wide A and B alleles profile obtained from exome sequencing.}
       \label{fig:genomeViewAB}
 \end{figure}
 

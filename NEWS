@@ -1,2 +1,8 @@
+16-01-2014
+ - Fix error on loading non-zipped files in the workflow.
+ - Ignore error and finish the process if one of the chromosome fails in the workflows.
+ * Add function to import VarScan2 output
+ * Add results function, to save results and standard plots.
+
 12-12-2013
-Fix grep instructions that broke single chromosome loading
+ - Fix grep instructions that broke single chromosome loading
