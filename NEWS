@@ -1,8 +1,12 @@
-16-01-2014
+04-02-2014 - 1.0.5
+ - Add a python utility to binning the data to a desired window size (reducing vastly memory footprint in the analysis)
+ - Fix default workflows parameter to detect CN up to 20.
+
+16-01-2014 - 1.0.4
+ - Add function to import VarScan2 output
+ - Add results function, to save results and standard plots.
  - Fix error on loading non-zipped files in the workflow.
  - Ignore error and finish the process if one of the chromosome fails in the workflows.
- * Add function to import VarScan2 output
- * Add results function, to save results and standard plots.
 
-12-12-2013
+12-12-2013 - 1.0.3
  - Fix grep instructions that broke single chromosome loading

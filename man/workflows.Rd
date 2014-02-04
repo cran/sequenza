@@ -15,11 +15,13 @@
 
   sequenza.fit(sequenza.extract, female = TRUE, segment.filter = 1e7,
                XY = c(X = "X", Y = "Y"), cellularity = seq(0.1,1,0.01),
-               ploidy = seq(1, 7, 0.1), priors.table = data.frame(CN = 2, value = 2),
+               ploidy = seq(1, 7, 0.1), ratio.priority = FALSE,
+               priors.table = data.frame(CN = 2, value = 2),
                chromosome.list = 1:24, mc.cores = getOption("mc.cores", 2L))
   sequenza.results(sequenza.extract, sequenza.fit = NULL, sample.id, out.dir = './',
-                   cellularity = NULL, ploidy = NULL, female = TRUE,
-                   XY = c(X = "X", Y = "Y"), chromosome.list = 1:24)
+                   cellularity = NULL, ploidy = NULL, female = TRUE, CNt.max = 20,
+                   ratio.priority = FALSE, XY = c(X = "X", Y = "Y"),
+                   chromosome.list = 1:24)
 }
 
 \arguments{
@@ -35,11 +37,13 @@
   \item{sequenza.extract}{a list of objects as output from the \code{sequenza.extract} function.}
   \item{sequenza.fit}{a list of objects as output from the \code{sequenza.fit} function.}
   \item{female}{logical, indicating whether the sample is male or female, to properly handle the X and Y chromosomes. Implementation only works for the human normal karyotype.}
+  \item{CNt.max}{maximum copy number to consider in the model.}  
   \item{segment.filter}{threshold segment length (in base pairs) to filter out short segments, that can cause noise when fitting the cellularity and ploidy parameters. The threshold will not affect the allele-specific segmentation.}
   \item{XY}{character vector of length 2 specifying the labels used for the X and Y chromosomes. Defaults to c(X = "X", Y = "Y").}
   \item{cellularity}{vector of values to test as cellularity parameter.}
   \item{ploidy}{vector of values to test as ploidy parameter.}
   \item{priors.table}{data frame with the columns \code{CN} and \code{value}, containing the copy numbers and the corresponding weights. To every copy number is assigned the value 1 as default, so every values different then 1 will change the corresponding weight.}
+  \item{ratio.priority}{logical, if TRUE only the depth ratio will be used to determine the copy number state, while the Bf value will be used to determine the number of B-alleles.}
   \item{chromosome.list}{Vector containing the index or the names of the chromosome to include in the model fitting.}
   \item{sample.id}{identifier of the sample. It will be used as prefix of saved object.}
   \item{out.dir}{output directory where all the files and object will be stored.}

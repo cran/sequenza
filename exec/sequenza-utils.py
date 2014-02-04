@@ -395,6 +395,75 @@ def line_worker(line, depth_sum, qlimit=20, qformat='sanger', hom_t=0.85, het_t=
    else:
       pass
 
+class abfreReduce:
+   def __init__(self, abf, w):
+      self.abf = abf
+      self.w   = w
+      self._status = 1
+      self._header = next(self.abf).strip()
+      line    = next(self.abf).strip()
+      line_ls = line.split('\t')
+      self.__refresh__(line_ls, line)
+   _sentinel        = object()
+   def next(self):
+      if self._status == 1:
+         try:
+            line    = next(self.abf).strip()
+            line_ls = line.split('\t')
+         except StopIteration:
+            self._status = 0
+            self.__do_dict__()
+            #return [line_ls[1], self.w + self._last_edge, self._n]
+            return self.line_dict    
+         if self.w + self._last_edge < int(line_ls[1]) or self._last_chromosome != line_ls[0]:
+            self.__do_dict__()
+            line_dict = self.line_dict
+            self.__refresh__(line_ls, line)
+            #return [line_ls[1], self.w + self._last_edge, self._n]
+            return line_dict 
+         else:
+            self.__addline__(line_ls, line)
+      elif self._status == 0:
+         raise StopIteration
+   def __refresh__(self, line_ls, line):
+      self._last_chromosome = line_ls[0]
+      self._last_edge       = int(line_ls[1])
+      self._last_position   = self._last_edge
+      self._n_depth         = int(line_ls[3])
+      self._t_depth         = int(line_ls[4])
+      self._ratio           = float(line_ls[5])
+      self._gc              = float(line_ls[9])
+      self._n               = 1
+      self.line_dict = {'top': '', 'middle': [], 'end': ''}
+      if float(line_ls[6]) < 1.0:
+         self.line_dict['top'] = line_ls
+   def __addline__(self, line_ls, line):
+      self._last_position    = int(line_ls[1])
+      self._n_depth         += int(line_ls[3])
+      self._t_depth         += int(line_ls[4])
+      self._ratio           += float(line_ls[5])
+      self._gc              += float(line_ls[9])
+      self._n               += 1
+      if float(line_ls[6]) < 1.0:
+         self.line_dict['middle'].append(line_ls)
+   def __do_dict__(self):
+      gc = str(round(self._gc/self._n, 3))
+      avg_line = [self._last_chromosome, self._last_position, 'N', self._n_depth/self._n,
+                  self._t_depth/self._n, round(self._ratio/self._n, 3), 1.0, 0, 'hom',
+                  gc , self._n, 'N', '.']
+      self.line_dict['end'] = map(str, avg_line)
+      if self.line_dict['top'] == '':
+         avg_line[1] = self._last_edge
+         self.line_dict['top'] = map(str, avg_line)
+      else:
+         self.line_dict['top'][9] = gc
+      for mid in self.line_dict['middle']:
+         mid[9] = gc
+   def close(self):
+      self.abf.close()
+   def __iter__(self):
+      return (iter(self.next, self._sentinel))
+
 def stream_fasta(fa_file, window_size, out_queue):
    """
    Read and stream a fasta file in a Pipe
@@ -656,7 +725,7 @@ def RPy2doAllSequenza(data_dir, is_male = True, tag = None, X = "X", Y = "Y", nc
       seg_res_xy  = sequenza.baf_bayes(Bf = segs_all.rx(True, 'Bf').rx(segs_is_xy),
                          depth_ratio = segs_all.rx(True, 'depth.ratio').rx(segs_is_xy),
                          avg_depth_ratio = avg_depth_ratio,
-                         weight_ratio = 2*200, ratio_priority = ratio_priority,
+                         weight_ratio = 2*200, ratio_priority = True,
                          weight_Bf = 200, CNt_max = 20,
                          cellularity = cint.rx2('max.y'),
                          ploidy = cint.rx2('max.x'), CNn = 1)
@@ -885,6 +954,13 @@ def merge_pileups(parser, subparser):
                    help='The second pileup, will show as the last columns set')
    return parser.parse_args()
 
+def reduce_abfreq(parser, subparser):
+   subparser.add_argument('-a', '--abfreq', dest = 'abfreq', required = True,
+                   help='An ABfreq file from the pileup2abfreq function.')
+   subparser.add_argument('-w', '--window', dest = 'w', type = int, default = 50,
+                   help='Window size used to binning the original ABfreq file. Default is 50.')
+   return parser.parse_args()
+
 def sequenzaExtract(parser, subparser):
    parser_io      = subparser.add_argument_group(title='Input and output',description='Input ABfreq files and output options.')
    parser_segment = subparser.add_argument_group(title='Segmentation',description='Option to control the segmentation.')
@@ -963,6 +1039,7 @@ def main():
    subparsers = parser.add_subparsers(dest='module')
    subparsers.metavar = None
    parser_pileup2abfreq  = subparsers.add_parser('pileup2abfreq', help = ' given a paired set of pileup (normal and matching tumor), and GC-content genome-wide information returns the common positions with A and B alleles frequencies',formatter_class=lambda prog: SubcommandHelpFormatter(prog,max_help_position=39, width=90))
+   parser_reduce_abfreq = subparsers.add_parser('abfreq-binning', help = 'Binning the abfreq file to reduce file size and memory requirement for the analysis.')
    parser_pup2mu = subparsers.add_parser('pileup2acgt', help = 'convert pileup format to ACGT format',formatter_class=lambda prog: SubcommandHelpFormatter(prog,max_help_position=30, width=90))
    parser_gc_window  = subparsers.add_parser('GC-windows', help = 'Given a fasta file and a window size it computes the GC percentage across the sequences, and returns a file in the same format as gc5Base from UCSC')
    parser_merge_pileups = subparsers.add_parser('merge-pileups', help = 'Merging two pileups, it finds the common positions and return an mpileup file adding the second pilep as last 3 columns.')
@@ -1056,7 +1133,18 @@ def main():
             pup = multiPileups(pileup1,pileup2)
             for line in pup:
                print('\t'.join(map(str, line)) + '\n')
-
+      elif used_module == "abfreq-binning":
+         args = reduce_abfreq(parser, parser_reduce_abfreq)
+         with xopen(args.abfreq, 'rb') as abfreq:
+            abfred = abfreReduce(abfreq, args.w)
+            print abfred._header
+            for a in abfred:
+               if a:
+                  print '\t'.join(a['top'])
+                  for mid in a['middle']:
+                     print '\t'.join(mid)
+                  if ['end'] != ['top']:
+                     print '\t'.join(a['end'])
       elif RPY2 == True and used_module == "sequenzaExtract":
          args = sequenzaExtract(parser, parser_squeezeAB)
          RPy2sqeezeABfreq(args.abfreq, args.loop, args.tag, check_dir(args.dir), args.kmin, args.gamma, args.mufreq)

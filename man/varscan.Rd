@@ -7,11 +7,11 @@
 }
 
 \usage{
-  VarScan2abfreq(varscan.snp, varscan.copynumber = NULL)
+  VarScan2abfreq(varscan.somatic, varscan.copynumber = NULL)
 }
 
 \arguments{
-  \item{varscan.snp}{data.frame from the output file of varscan somatic.}
+  \item{varscan.somatic}{data.frame from the output file of varscan somatic.}
   \item{varscan.copynumber}{data.frame from the output file of varscan copynumber. it is not required. default NULL}
 }
 

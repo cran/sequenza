@@ -12,7 +12,7 @@ model.points(cellularity = 0.5, ploidy = 2, types = cbind(CNn = 2, CNt = 2, Mt =
 
 \arguments{
   \item{cellularity}{fraction of tumor cells in the sample.}
-  \item{ploidy}{ratio between total DNA content in a tumor cell and a normal cell.}
+  \item{ploidy}{2 * ratio between total DNA content in a tumor cell and a normal cell.}
   \item{types}{matrix with the sets of copy numbers and number of mutated alleles over which to model mutation frequency and depth ratio. The matrix can be generated with \code{\link{types.matrix}}.}
   \item{avg.depth.ratio}{average normalized depth ratio.}
 }

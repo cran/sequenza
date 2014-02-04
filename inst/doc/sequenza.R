@@ -23,7 +23,7 @@
 ###################################################
 ## cnv <- read.table("varscan.copynumber", header = TRUE, sep = "\t")
 ## snp <- read.table("varscan.snp", header = TRUE, sep = "\t")
-## abf.data <- VarScan2abfreq(varscan.snp = snp, varscan.copynumber = cnv)
+## abf.data <- VarScan2abfreq(varscan.somatic = snp, varscan.copynumber = cnv)
 ## 
 ## write.table(abf.data, "my.sample.abfreq", col.names = TRUE, row.names = FALSE, sep = "\t")
 
@@ -60,7 +60,7 @@ abf.data <- read.abfreq(data.file)
 
 
 ###################################################
-### code chunk number 10: sequenza.Rnw:169-170
+### code chunk number 10: sequenza.Rnw:180-181
 ###################################################
 str(abf.data, vec.len = 2)
 
@@ -137,7 +137,7 @@ data(CP.example)
 ###################################################
 ### code chunk number 20: sequenzaRes (eval = FALSE)
 ###################################################
-## sequenza.results(sequenza.extract = test, sequenza.fit = CP.examples,
+## sequenza.results(sequenza.extract = test, sequenza.fit = CP.example,
 ##                  sample.id = "Test", out.dir="TEST", )
 
 
@@ -193,6 +193,7 @@ ploidy
 ### code chunk number 25: avgDepth
 ###################################################
 avg.depth.ratio <- mean(test$gc$adj[, 2])
+avg.depth.ratio
 
 
 ###################################################

@@ -25,7 +25,7 @@
   \item{weight.mufreq}{vector of weights for the mutation frequency values.}
   \item{weight.ratio}{vector of weights for the depth ratio values.}
   \item{cellularity}{fraction of tumor cells in the sample.}
-  \item{ploidy}{ratio between total DNA content in a tumor cell and a normal cell.}
+  \item{ploidy}{2 * ratio between total DNA content in a tumor cell and a normal cell.}
   \item{avg.depth.ratio}{average normalized depth ratios.}
   \item{CNt.min}{minimum copy number to consider in the model.}
   \item{CNt.max}{maximum copy number to consider in the model.}
