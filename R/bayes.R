@@ -70,7 +70,7 @@ mufreq.bayes <- function(mufreq, depth.ratio, cellularity, ploidy, avg.depth.rat
 
       res.cn     <- model.pts$CNt[which.max(score.r)]
       idx.pts    <- model.pts$CNt == res.cn
-      model.lik  <- cbind(model.pts[idx.pts, 1:3], log2(post.model[idx.pts]))
+      model.lik  <- cbind(model.pts[idx.pts, 1:3], log(post.model[idx.pts]))
       if (is.null(dim(model.lik))) {
          max.post <- model.lik
       } else {
@@ -92,7 +92,7 @@ mufreq.bayes <- function(mufreq, depth.ratio, cellularity, ploidy, avg.depth.rat
 baf.bayes <- function(Bf, depth.ratio, cellularity, ploidy, avg.depth.ratio,
                       weight.Bf = 100, weight.ratio = 100, CNt.min = 0,
                       CNt.max = 7, CNn = 2, priors.table = data.frame(CN = CNt.min:CNt.max,
-                      value = 1), ratio.priority = FALSE, skew.baf = 0.95) {
+                      value = 1), ratio.priority = FALSE) {
 
    mufreq.tab <- data.frame(Bf = Bf, ratio = depth.ratio,
                             weight.Bf = weight.Bf, weight.ratio = weight.ratio)
@@ -101,12 +101,13 @@ baf.bayes <- function(Bf, depth.ratio, cellularity, ploidy, avg.depth.ratio,
                                       avg.depth.ratio = avg.depth.ratio)
    model.d.ratio      <- cbind(CNt = CNt.min:CNt.max, depth.ratio = mufreq.depth.ratio[, 2])
    model.baf          <- theoretical.baf(CNn = CNn, CNt = CNt.max, cellularity = cellularity)
-   if(CNt.min == 0) {
-      model.baf          <- as.data.frame(rbind(c(0, 0, 1/CNn, 0), model.baf))
-   }
    # B-allele freq are never 0.5, always smaller. work around on this bias
-   model.baf$BAF[model.baf$BAF == 0.5] <- quantile(rep(mufreq.tab$Bf, times = mufreq.tab$weight.Bf),
-                                                   na.rm = TRUE, probs = skew.baf)
+   model.baf$BAF[model.baf$A==model.baf$B] <- quantile(rep(mufreq.tab$Bf, times = mufreq.tab$weight.Bf),
+                                                       na.rm = TRUE, probs = 0.95)
+   if(CNt.min == 0) {
+     model.baf          <- as.data.frame(rbind(c(0, 0, max(model.baf$BAF), 0), model.baf))
+   }
+   #                                                na.rm = TRUE, probs = skew.baf)
    model.pts          <- merge(model.baf, model.d.ratio)
    # model.pts          <- cbind(baf.type = apply(model.pts[, 1:3], 1, FUN = function(x) paste(x, collapse = "_")),
    #                             model.pts[, 4:5])
@@ -133,11 +134,11 @@ baf.bayes <- function(Bf, depth.ratio, cellularity, ploidy, avg.depth.ratio,
       post.model[post.model == 0] <- min.offset
       if (ratio.priority == FALSE) {
          max.lik <-  which.max(post.model)
-         max.post <- c(as.numeric(model.pts[max.lik,1:3]), log2(post.model[max.lik]))
+         max.post <- c(as.numeric(model.pts[max.lik,1:3]), log(post.model[max.lik]))
       } else {
          res.cn     <- model.pts$CNt[which.max(score.r)]
          idx.pts    <- model.pts$CNt == res.cn
-         model.lik  <- cbind(model.pts[idx.pts, 1:3], log2(post.model[idx.pts]))
+         model.lik  <- cbind(model.pts[idx.pts, 1:3], log(post.model[idx.pts]))
          if (is.null(dim(model.lik))) {
             max.post <- model.lik
          } else {
@@ -155,13 +156,6 @@ baf.bayes <- function(Bf, depth.ratio, cellularity, ploidy, avg.depth.ratio,
    bafs.L           <- do.call(rbind, bafs.L)
    colnames(bafs.L) <- c("CNt", "A", "B", "L")
    bafs.L
-}
-
-shannon.types <- function(types.mat) {
-   data.types <- apply(types.mat, 1, FUN = function(x) paste(x, collapse = "_"))
-   tab.types <- table(data.types)/length(data.types)
-   tab.types <- tab.types * log2(tab.types)
-   -sum(tab.types)
 }
 
 mufreq.model.fit <- function(cellularity = seq(0.3, 1, by = 0.01),
@@ -182,9 +176,9 @@ mufreq.model.fit <- function(cellularity = seq(0.3, 1, by = 0.01),
    x <- as.numeric(rownames(z))
    y <- as.numeric(colnames(z))
    max.lik <- max(result$L)
-   LogSumLik <- log2(sum(2^(result$L - max.lik))) + max.lik
-   znorm <- 2^(z - LogSumLik)
-   list(x = x, y = y, z = znorm)
+   LogSumLik <- log(sum(exp(result$L - max.lik))) + max.lik
+   znorm <- exp(z - LogSumLik)
+   list(ploidy = x, cellularity = y, loglik = znorm)
 }
 
 baf.model.fit <- function(cellularity = seq(0.3, 1, by = 0.01),
@@ -205,7 +199,7 @@ baf.model.fit <- function(cellularity = seq(0.3, 1, by = 0.01),
    x <- as.numeric(rownames(z))
    y <- as.numeric(colnames(z))
    max.lik <- max(result$L)
-   LogSumLik <- log2(sum(2^(result$L - max.lik))) + max.lik
-   znorm <- 2^(z - LogSumLik)
-   list(x = x, y = y, z = znorm)
+   LogSumLik <- log(sum(exp(result$L - max.lik))) + max.lik
+   znorm <- exp(z - LogSumLik)
+   list(ploidy = x, cellularity = y, loglik = znorm)
 }

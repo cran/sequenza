@@ -1,28 +1,27 @@
-cp.plot <- function (cp.table, ...) {
-   #colorgram(x = cp.table$x, y = cp.table$y, z = log(cp.table$z),
-   #    colFn = heat, map = map, outlier = outlier, las = 1,
-   #    xlab = "ploidy", ylab = "Cellularity", zlab = "log-likelihood",
-   #    ...)
-   colorgram(x = cp.table$x, y = cp.table$y, z = matrix(rank(cp.table$z),
-                                                        nrow = nrow(cp.table$z)), colFn = colorRampPalette(c('white', 'lightblue')),
-             las = 1, xlab = "Ploidy", ylab = "Cellularity", zlab = "Rank likelihood",
-             ...)
+cp.plot <- function (cp.table,  
+                     xlab = "Ploidy", ylab = "Cellularity", zlab = "Scaled rank likelihood", 
+                     colFn = colorRampPalette(c('white', 'lightblue')), ...) {
+  z <- matrix(rank(cp.table$loglik), nrow = nrow(cp.table$loglik)) / length(cp.table$loglik)
+  map <- makecmap(c(0, 1), colFn = colFn, include.lowest = TRUE)
+  colorgram(x = cp.table$ploidy, y = cp.table$cellularity, z = z, 
+            map = map, las = 1, 
+            xlab = xlab, ylab = ylab, zlab = zlab, ...)
 }
 
 cp.plot.contours <- function(cp.table, likThresh = c(0.95),
                              col = palette(), legend.pos = 'bottomright', pch = 18, ...) {
-   znormsort <- sort(cp.table$z, decreasing = TRUE)
+   znormsort <- sort(cp.table$loglik, decreasing = TRUE)
    znormcumLik <- cumsum(znormsort)
    n <- sapply(likThresh, function(x) sum(znormcumLik < x) + 1)
    LikThresh <- znormsort[n]
    names(LikThresh) <- paste0(likThresh * 100, '%')
 
-   contour(cp.table, levels = znormsort[n], col = col,
-           drawlabels = FALSE,
-           xlab= "Ploidy", ylab = "Cellularity", ...)
-   max.xy <- which(cp.table$z == max(cp.table$z), arr.ind = TRUE)
-   points(x = cp.table$x[max.xy[, "row"]],
-          y = cp.table$y[max.xy[, "col"]], pch = pch)
+   contour(x = cp.table$ploidy, y = cp.table$cellularity, z = cp.table$loglik,
+           levels = znormsort[n], col = col, drawlabels = FALSE,
+           xlab = "Ploidy", ylab = "Cellularity", ...)
+   max.xy <- which(cp.table$loglik == max(cp.table$loglik), arr.ind = TRUE)
+   points(x = cp.table$ploidy[max.xy[, "row"]],
+          y = cp.table$cellularity[max.xy[, "col"]], pch = pch)
    if(!is.na(legend.pos)) {
       legend(legend.pos, legend = c(paste("C.R.", names(LikThresh), sep = " "), "Point estimate"),
              col = c(col[1:length(LikThresh)], "black"), lty = c(rep(1, length(LikThresh)), NA),
@@ -70,31 +69,32 @@ cp.plot.contours <- function(cp.table, likThresh = c(0.95),
 #    bxplot(d.list, names = gc.values, ...)
 # }
 
-plotWindows <- function(abf.window, m.lty = 1, m.lwd = 3,
+plotWindows <- function(seqz.window, m.lty = 1, m.lwd = 3,
                          m.col = "black", q.bg = "lightblue", log2.plot = FALSE,
                          n.min = 1, xlim, ylim, add = FALSE, ...) {
-   if (log2.plot == TRUE) {
-      abf.window[, c(3, 4, 5)] <- log2(abf.window[, c(3, 4, 5)])
+   if (log2.plot) {
+      seqz.window[, c(3, 4, 5)] <- log2(seqz.window[, c(3, 4, 5)])
    }
    if(!add) {
       if(missing(xlim))
-         xlim <- c(abf.window[1, 1], abf.window[nrow(abf.window), 2])
+         xlim <- c(seqz.window$start[1], seqz.window$end[nrow(seqz.window)])
       if(missing(ylim))
-         ylim <- c(min(abf.window[, 4], na.rm = TRUE), max(abf.window[, 5], na.rm = TRUE))
+         ylim <- c(min(seqz.window$q0, na.rm = TRUE), max(seqz.window$q1, na.rm = TRUE))
       plot(xlim, ylim, type = "n", ...)
    }
-   abf.window <- abf.window[abf.window[, 6] >= n.min, ]
-   rect(xleft = abf.window[, 1], ybottom = abf.window[, 4],
-        xright = abf.window[, 2], ytop = abf.window[, 5],
+   seqz.window <- seqz.window[seqz.window$N >= n.min, ]
+   rect(xleft = seqz.window$start, ybottom = seqz.window$q0,
+        xright = seqz.window$end, ytop = seqz.window$q1,
         col = q.bg, border = NA)
-   segments(y0 = abf.window[, 3], x0 = abf.window[, 1] , x1 = abf.window[, 2], lty = m.lty, lwd = m.lwd, col = m.col)
+   segments(y0 = seqz.window$mean, x0 = seqz.window$start, x1 = seqz.window$end, 
+            lty = m.lty, lwd = m.lwd, col = m.col)
 
 }
 
 chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments = NULL,  min.N.baf = 1, min.N.ratio = 1e4,
                             main = "", vlines = FALSE, legend.inset = c(-20 * strwidth("a", units = 'figure'), 0), BAF.style = "none",
-                            CNn = 2, cellularity = NULL, ploidy = NULL, avg.depth.ratio = NULL, model.lwd = 1, model.lty = "24", model.col = 1,
-                            x.chr.space = 10) {
+                            CNn = 2, cellularity = NULL, ploidy = NULL, avg.depth.ratio = NULL, model.lwd = 1,
+                            model.lty = "24", model.col = 1, x.chr.space = 10) {
    make.polygons <- function(segments, model.baf) {
       max.B      <- max(model.baf$B[model.baf$CNt == max(segments$CNt)])
       mat.polygs <- matrix(ncol = max.B+1, nrow = nrow(segments))
@@ -144,7 +144,7 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
                data.model$baf <- rbind(c(0,0,0.5,0), data.model$baf)
             } else {
                data.model$baf <- rbind(c(0,0,1,0), data.model$baf)
-            }
+            }       
             types          <- types.matrix(CNt.min = CNt.min, CNt.max = CNt.max, CNn = CNn)
             data.model$muf <- cbind(types, model.points(cellularity = cellularity, ploidy = ploidy,
                                                    types = types, avg.depth.ratio = avg.depth.ratio))
@@ -159,8 +159,8 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
       max.x <- max(c(max(baf.windows$end), max(ratio.windows$end)))
       xlim <- c(min.x, max.x)
    } else {
-      min.x <- min(c(min(baf.windows$start), min(ratio.windows$start), min(mut.tab$n.base)))
-      max.x <- max(c(max(baf.windows$end), max(ratio.windows$end), max(mut.tab$n.base)))
+      min.x <- min(c(min(baf.windows$start), min(ratio.windows$start), min(mut.tab$position)))
+      max.x <- max(c(max(baf.windows$end), max(ratio.windows$end), max(mut.tab$position)))
       xlim <- c(min.x, max.x)
       par(mar = c(0, 4, 0, 10), oma = c(5, 0, 4, 0), mfcol = c(3,1), xaxt='n', xpd = TRUE)
       mutation.colors <- c(
@@ -177,7 +177,7 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
          'C>T' = rgb(red = 255, green = 215, blue =   0, alpha = 120, maxColorValue = 255),
          'G>A' = rgb(red = 255, green = 215, blue =   0, alpha = 120, maxColorValue = 255)
       )
-      plot(x = mut.tab$n.base, y = mut.tab$F,
+      plot(x = mut.tab$position, y = mut.tab$F,
            ylab = "Mutant allele frequency", las = 1, pch = 19,
            col = c(mutation.colors, 'NA' = NA)[as.character(mut.tab$mutation)],
            ylim = c(min(mut.tab$F, na.rm = TRUE), 1), xlim = xlim)

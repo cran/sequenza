@@ -10,10 +10,10 @@
 }
 
 \usage{
-theoretical.baf(CNn, CNt, cellularity)
-theoretical.depth.ratio(cellularity = 0.5, ploidy = 2, CNn = 2, CNt = 2,
-                        avg.depth.ratio = 1, normal.ploidy = 2)
-theoretical.mufreq(cellularity, CNn = 2, CNt = 2, Mt = 1)
+theoretical.baf(CNt, CNn = 2, cellularity)
+theoretical.depth.ratio(CNt, CNn = 2, cellularity, ploidy,
+                        normal.ploidy = 2, avg.depth.ratio = 1)
+theoretical.mufreq(Mt, CNt, CNn = 2, cellularity)
 
 }
 
@@ -39,5 +39,5 @@ theoretical.mufreq(cellularity, CNn = 2, CNt = 2, Mt = 1)
 }
 
 \seealso{
-  \code{model.points}.
+  \code{\link{model.points}}
 }

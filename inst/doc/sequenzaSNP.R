@@ -16,17 +16,16 @@ data(logR)
 ###################################################
 ### code chunk number 3: SNPdataPrep
 ###################################################
-sample.i <- data.frame(chromosome = BAF$chrs, n.base = BAF$pos, 
+sample.i <- data.frame(chromosome = BAF$chrs, position = BAF$pos, 
                       Bf = BAF$S1, adjusted.ratio = logR$S1,
-                      depth.sample = 1, good.s.reads = 1,
-                      ref.zygosity = 'hom', stringsAsFactors = FALSE)
+                      depth.tumor = 1, good.reads = 1,
+                      zygosity.normal = 'hom', stringsAsFactors = FALSE)
 
 
 ###################################################
 ### code chunk number 4: logRMeansub
 ###################################################
-#sample.i$adjusted.ratio <- 2^(sample.i$adjusted.ratio)
-#sample.i$adjusted.ratio <- sample.i$adjusted.ratio / mean(sample.i$adjusted.ratio)
+
 sample.i$adjusted.ratio <- 2^(sample.i$adjusted.ratio/0.55)
 
 
@@ -36,7 +35,7 @@ sample.i$adjusted.ratio <- 2^(sample.i$adjusted.ratio/0.55)
 ###################################################
 het.lim <- 0.2
 is.het <- sample.i$Bf >= het.lim & sample.i$Bf <= 1 - het.lim
-sample.i$ref.zygosity[is.het] <- 'het'
+sample.i$zygosity.normal[is.het] <- 'het'
 sample.i$Bf[sample.i$Bf >= 0.5] <- 1 - sample.i$Bf[sample.i$Bf >= 0.5]
 sample.het.i <- sample.i[is.het, ]
 
@@ -46,7 +45,7 @@ sample.het.i <- sample.i[is.het, ]
 ###################################################
  
 snp.r.win <- windowValues(x = sample.i$adjusted.ratio,
-                          positions = sample.i$n.base,
+                          positions = sample.i$position,
                           chromosomes = sample.i$chromosome,
                           window = 1e6, overlap = 1)
 
@@ -55,7 +54,7 @@ snp.r.win <- windowValues(x = sample.i$adjusted.ratio,
 ### code chunk number 7: BAFWin
 ###################################################
 snp.b.win <- windowValues(x = sample.het.i$Bf,
-                          positions = sample.het.i$n.base,
+                          positions = sample.het.i$position,
                           chromosomes = sample.het.i$chromosome,
                           window = 1e6, overlap = 1)
 
@@ -109,8 +108,8 @@ data(CPsnp.example)
 ###################################################
 cint <- get.ci(CPsnp.example)
 
-cellularity <- cint$max.y
-ploidy   <- cint$max.x
+cellularity <- cint$max.cellularity
+ploidy   <- cint$max.ploidy
 
 
 ###################################################

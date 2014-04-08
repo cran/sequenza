@@ -7,7 +7,7 @@
 }
 
 \usage{
-  types.matrix(CNt.min = 1, CNt.max = 7, CNn = 2)
+  types.matrix(CNt.min, CNt.max, CNn = 2)
 }
 
 \arguments{

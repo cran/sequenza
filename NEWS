@@ -1,12 +1,23 @@
-04-02-2014 - 1.0.5
- - Add a python utility to binning the data to a desired window size (reducing vastly memory footprint in the analysis)
+Changes in version 2.0.0 (2014-04-08)
+ - Change seqz names header and some function arguments/formats to improve usability
+ - Add to sequenza.fit a method argument to calculate cellularity and ploidy also from mutations
+ - Change the recommended file extension from ".abfreq" to ".seqz" for clarity.
+ - The "seqz" file now contains a column with strand orientation information.
+ - "cp.plot" now plots the scaled log-likelood.
+ - "theoretical.depth.ratio" now implements the correct formula.
+ - The "theoretical.*" functions have their arguments rearranged, and defaults changed, for consistency.
+ - "sequenza.extract" now has additional filtering arguments.
+ - Miscellaneous cleanup/simplification/optimization.
+
+Changes in version 1.0.5 (2014-02-04)
+ - Add a python utility for binning the data to a desired window size (reducing vastly memory footprint in the analysis)
  - Fix default workflows parameter to detect CN up to 20.
 
-16-01-2014 - 1.0.4
+Changes in version 1.0.4 (2014-01-16)
  - Add function to import VarScan2 output
  - Add results function, to save results and standard plots.
  - Fix error on loading non-zipped files in the workflow.
  - Ignore error and finish the process if one of the chromosome fails in the workflows.
 
-12-12-2013 - 1.0.3
+Changes in version 1.0.3 (2013-12-12)
  - Fix grep instructions that broke single chromosome loading

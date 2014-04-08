@@ -21,11 +21,11 @@
 ###################################################
 ### code chunk number 4: varscan (eval = FALSE)
 ###################################################
-## cnv <- read.table("varscan.copynumber", header = TRUE, sep = "\t")
 ## snp <- read.table("varscan.snp", header = TRUE, sep = "\t")
-## abf.data <- VarScan2abfreq(varscan.somatic = snp, varscan.copynumber = cnv)
+## cnv <- read.table("varscan.copynumber", header = TRUE, sep = "\t")
+## seqz.data <- VarScan2seqz(varscan.somatic = snp, varscan.copynumber = cnv)
 ## 
-## write.table(abf.data, "my.sample.abfreq", col.names = TRUE, row.names = FALSE, sep = "\t")
+## write.table(seqz.data, "my.sample.seqz", col.names = TRUE, row.names = FALSE, sep = "\t")
 
 
 ###################################################
@@ -37,32 +37,32 @@ library("sequenza")
 ###################################################
 ### code chunk number 6: setFile (eval = FALSE)
 ###################################################
-## data.file <-  system.file("data", "abf.data.abfreq.txt.gz", package = "sequenza")
+## data.file <-  system.file("data", "example.seqz.txt.gz", package = "sequenza")
 ## data.file
 
 
 ###################################################
 ### code chunk number 7: setFile2
 ###################################################
-data.file <-  system.file("data", "abf.data.abfreq.txt.gz", package = "sequenza")
+data.file <-  system.file("data", "example.seqz.txt.gz", package = "sequenza")
 
 
 ###################################################
 ### code chunk number 8: readAfreqChr (eval = FALSE)
 ###################################################
-## abf.data <- read.abfreq(data.file, chr.name = "1")
+## seqz.data <- read.seqz(data.file, chr.name = "1")
 
 
 ###################################################
 ### code chunk number 9: readAfreq
 ###################################################
-abf.data <- read.abfreq(data.file)
+seqz.data <- read.seqz(data.file)
 
 
 ###################################################
-### code chunk number 10: sequenza.Rnw:180-181
+### code chunk number 10: sequenza.Rnw:204-205
 ###################################################
-str(abf.data, vec.len = 2)
+str(seqz.data, vec.len = 2)
 
 
 ###################################################
@@ -80,8 +80,8 @@ str(gc.stats)
 ###################################################
 ### code chunk number 13: depthRGCnorm (eval = FALSE)
 ###################################################
-## gc.stats <- gc.norm(x = abf.data$depth.ratio,
-##                     gc = abf.data$GC.percent)
+## gc.stats <- gc.norm(x = seqz.data$depth.ratio,
+##                     gc = seqz.data$GC.percent)
 
 
 ###################################################
@@ -89,8 +89,8 @@ str(gc.stats)
 ###################################################
 gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
 
-abf.data$adjusted.ratio <- abf.data$depth.ratio / 
-                           gc.vect[as.character(abf.data$GC.percent)]                       
+seqz.data$adjusted.ratio <- seqz.data$depth.ratio / 
+                           gc.vect[as.character(seqz.data$GC.percent)]                       
 
 
 ###################################################
@@ -101,7 +101,7 @@ matplot(gc.stats$gc.values, gc.stats$raw,
         type = 'b', col = 1, pch = c(1, 19, 1), lty = c(2, 1, 2),
         xlab = 'GC content (%)', ylab = 'Uncorrected depth ratio')
 legend('topright', legend = colnames(gc.stats$raw), pch = c(1, 19, 1))
-hist2(abf.data$depth.ratio, abf.data$adjusted.ratio,
+hist2(seqz.data$depth.ratio, seqz.data$adjusted.ratio,
       breaks = prettyLog, key = vkey, panel.first = abline(0, 1, lty = 2),
       xlab = 'Uncorrected depth ratio', ylab = 'GC-adjusted depth ratio')
 
@@ -137,8 +137,8 @@ data(CP.example)
 ###################################################
 ### code chunk number 20: sequenzaRes (eval = FALSE)
 ###################################################
-## sequenza.results(sequenza.extract = test, sequenza.fit = CP.example,
-##                  sample.id = "Test", out.dir="TEST", )
+## sequenza.results(sequenza.extract = test, cp.table = CP.example,
+##                  sample.id = "Test", out.dir="TEST")
 
 
 ###################################################
@@ -151,7 +151,7 @@ cint <- get.ci(CP.example)
 ### code chunk number 22: CPplot
 ###################################################
 cp.plot(CP.example)
-cp.plot.contours(CP.example, add = TRUE, likThresh = c(0.999))
+cp.plot.contours(CP.example, add = TRUE, likThresh = c(0.95))
 
 
 ###################################################
@@ -160,32 +160,32 @@ cp.plot.contours(CP.example, add = TRUE, likThresh = c(0.999))
 par(mfrow = c(2,2))
 cp.plot(CP.example)
 cp.plot.contours(CP.example, add = TRUE)
-plot(cint$values.y, ylab = "Cellularity",
+plot(cint$values.cellularity, ylab = "Cellularity",
      xlab = "likelihood", type = "n")
-select <- cint$confint.y[1] <= cint$values.y[,2] &
-          cint$values.y[,2] <= cint$confint.y[2]
-polygon(y = c(cint$confint.y[1], cint$values.y[select, 2], cint$confint.y[2]), 
-        x = c(0, cint$values.y[select, 1], 0), col='red', border=NA)
-lines(cint$values.y)
-abline(h = cint$max.y, lty = 2, lwd = 0.5)  
+select <- cint$confint.cellularity[1] <= cint$values.cellularity[,2] &
+          cint$values.cellularity[,2] <= cint$confint.cellularity[2]
+polygon(y = c(cint$confint.cellularity[1], cint$values.cellularity[select, 2], cint$confint.cellularity[2]), 
+        x = c(0, cint$values.cellularity[select, 1], 0), col='red', border=NA)
+lines(cint$values.cellularity)
+abline(h = cint$max.cellularity, lty = 2, lwd = 0.5)  
 
-plot(cint$values.x, xlab = "Ploidy",
+plot(cint$values.ploidy, xlab = "Ploidy",
      ylab = "likelihood", type = "n")
-select <- cint$confint.x[1] <= cint$values.x[,1] &
-          cint$values.x[,1] <= cint$confint.x[2]
-polygon(x = c(cint$confint.x[1], cint$values.x[select, 1], cint$confint.x[2]), 
-        y = c(0, cint$values.x[select, 2], 0), col='red', border=NA)
-lines(cint$values.x)
-abline(v = cint$max.x, lty = 2, lwd = 0.5)
+select <- cint$confint.ploidy[1] <= cint$values.ploidy[,1] &
+          cint$values.ploidy[,1] <= cint$confint.ploidy[2]
+polygon(x = c(cint$confint.ploidy[1], cint$values.ploidy[select, 1], cint$confint.ploidy[2]), 
+        y = c(0, cint$values.ploidy[select, 2], 0), col='red', border=NA)
+lines(cint$values.ploidy)
+abline(v = cint$max.ploidy, lty = 2, lwd = 0.5)
 
 
 
 ###################################################
 ### code chunk number 24: seParam
 ###################################################
-cellularity <- cint$max.y
+cellularity <- cint$max.cellularity
 cellularity
-ploidy <- cint$max.x
+ploidy <- cint$max.ploidy
 ploidy
 
 
@@ -206,7 +206,7 @@ mut.alleles <- mufreq.bayes(mufreq = mut.tab$F,
                             avg.depth.ratio = avg.depth.ratio)
 
 head(mut.alleles)
-head(cbind(mut.tab[,c("chromosome","n.base","F","adjusted.ratio", "mutation")],
+head(cbind(mut.tab[,c("chromosome","position","F","adjusted.ratio", "mutation")],
            mut.alleles))
 
 
@@ -236,7 +236,6 @@ chromosome.view(mut.tab = test$mutations[[3]], baf.windows = test$BAF[[3]],
 ###################################################
 ### code chunk number 29: genomeViewCNt
 ###################################################
-
 genome.view(seg.cn = seg.tab, info.type = "CNt")
 legend("bottomright", bty="n", c("Tumor copy number"),col = c("red"), 
        inset = c(0, -0.4), pch=15, xpd = TRUE)

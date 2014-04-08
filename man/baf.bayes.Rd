@@ -1,7 +1,7 @@
 \name{baf.bayes}
 \alias{baf.bayes}
 \alias{mufreq.bayes}
-\title{Model allele-specific copy numbers with specified cellularity and DNA-content parameters}
+\title{Model allele-specific copy numbers with specified cellularity and ploidy parameters}
 
 \description{
   Given a pair of cellularity and ploidy parameters, the function returns the most likely allele-specific copy numbers with the corresponding log-likelihood of the fit, for given values of B-allele frequency and depth ratio.
@@ -11,7 +11,7 @@
   baf.bayes(Bf, depth.ratio, cellularity, ploidy, avg.depth.ratio,
             weight.Bf = 100, weight.ratio = 100, CNt.min = 0, CNt.max = 7,
             CNn = 2, priors.table = data.frame(CN = CNt.min:CNt.max, value = 1),
-            ratio.priority = FALSE, skew.baf = 0.95)
+            ratio.priority = FALSE)
   mufreq.bayes(mufreq, depth.ratio, cellularity, ploidy, avg.depth.ratio,
             weight.mufreq = 100, weight.ratio = 100, CNt.min = 1, CNt.max = 7, CNn = 2,
             priors.table = data.frame(CN = CNt.min:CNt.max, value = 1))
@@ -26,13 +26,12 @@
   \item{weight.ratio}{vector of weights for the depth ratio values.}
   \item{cellularity}{fraction of tumor cells in the sample.}
   \item{ploidy}{2 * ratio between total DNA content in a tumor cell and a normal cell.}
-  \item{avg.depth.ratio}{average normalized depth ratios.}
+  \item{avg.depth.ratio}{average normalized depth ratio.}
   \item{CNt.min}{minimum copy number to consider in the model.}
   \item{CNt.max}{maximum copy number to consider in the model.}
   \item{CNn}{copy number of the normal genome.}
-  \item{priors.table}{data frame with the columns \code{CN} and \code{value}, containing the copy numbers and the corresponding weights. To every copy number is assigned the value 1 as default, so every values different then 1 will change the corresponding weight.}
+  \item{priors.table}{data frame with columns \code{CN} and \code{value}, containing the copy numbers and the corresponding weights. To every copy number is assigned the value 1 as default, so any values different from 1 will change the corresponding weight.}
   \item{ratio.priority}{logical, if TRUE only the depth ratio will be used to determine the copy number state, while the Bf value will be used to determine the number of B-alleles.}
-  \item{skew.baf}{observed B-allele frequency often does not converge to the 0.5 frequency, for normal diploid positions. This argument indicate at which percentile of the observed B-allele frequency to skew the theoretic value below 0.5.}
 }
 
 \value{
@@ -53,25 +52,25 @@
 
 \examples{
   \dontrun{
-data.file <-  system.file("data", "abf.data.abfreq.txt.gz", package = "sequenza")
+data.file <-  system.file("data", "example.seqz.txt.gz", package = "sequenza")
 # read all the chromosomes:
-abf.data  <- read.abfreq(data.file)
+seqz.data  <- read.seqz(data.file)
 # Gather genome wide GC-stats from raw file:
 gc.stats <- gc.sample.stats(data.file)
 gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
 # Read only one chromosome:
-abf.data  <- read.abfreq(data.file, chr.name = 1)
+seqz.data  <- read.seqz(data.file, chr.name = 1)
 
 # Correct the coverage of the loaded chromosome:
-abf.data$adjusted.ratio <- abf.data$depth.ratio /
-                           gc.vect[as.character(abf.data$GC.percent)]
+seqz.data$adjusted.ratio <- seqz.data$depth.ratio /
+                           gc.vect[as.character(seqz.data$GC.percent)]
 # Select the heterozygous positions
-abf.hom  <- abf.data$ref.zygosity == 'hom'
-abf.het  <- abf.data[!abf.hom, ]
+seqz.hom  <- seqz.data$zygosity.normal == 'hom'
+seqz.het  <- seqz.data[!seqz.hom, ]
 # Detect breakpoints
-breaks <- find.breaks(abf.het, gamma = 80, kmin = 10, baf.thres = c(0, 0.5))
+breaks <- find.breaks(seqz.het, gamma = 80, kmin = 10, baf.thres = c(0, 0.5))
 # use heterozygous and homozygous position to measure segment values
-seg.s1 <- segment.breaks(abf.data, breaks = breaks)
+seg.s1 <- segment.breaks(seqz.data, breaks = breaks)
 
 # filter out small ambiguous segments, and conveniently weight the segments by size:
 seg.filtered <- seg.s1[(seg.s1$end.pos - seg.s1$start.pos) > 10e6, ]
@@ -89,8 +88,8 @@ CP <- baf.model.fit(Bf = seg.filtered$Bf, depth.ratio = seg.filtered$depth.ratio
                     ploidy = seq(0.5,3,0.05))
 
 confint <- get.ci(CP)
-ploidy   <- confint$max.x
-cellularity <- confint$max.y
+ploidy   <- confint$max.ploidy
+cellularity <- confint$max.cellularity
 
 #detect copy number alteration on the segments:
 
@@ -101,7 +100,7 @@ cn.alleles <- baf.bayes(Bf = seg.s1$Bf, depth.ratio = seg.s1$depth.ratio,
 head(cbind(seg.s1, cn.alleles))
 
 # create mutation table:
-mut.tab   <- mutation.table(abf.data, mufreq.treshold = 0.15,
+mut.tab   <- mutation.table(seqz.data, mufreq.treshold = 0.15,
                             min.reads = 40, max.mut.types = 1,
                             min.type.freq = 0.9, segments = seg.s1)
 
@@ -112,7 +111,9 @@ mut.alleles <- mufreq.bayes(mufreq = mut.tab.clean$F,
                             depth.ratio = mut.tab.clean$adjusted.ratio,
                             cellularity = cellularity, ploidy = ploidy,
                             avg.depth.ratio = avg.depth.ratio)
-head(cbind(mut.tab.clean[,c("chromosome","n.base","F","adjusted.ratio", "mutation")], mut.alleles))
+head(cbind(mut.tab.clean[,c("chromosome","position","F",
+                            "adjusted.ratio", "mutation")],
+           mut.alleles))
 
 
    }

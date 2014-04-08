@@ -1,5 +1,5 @@
 export(
-	read.abfreq,
+	read.seqz,
 	read.acgt,
 	gc.norm,
 	gc.sample.stats,
@@ -25,7 +25,7 @@ export(
    sequenza.fit,
    sequenza.extract,
    sequenza.results,
-   VarScan2abfreq
+   VarScan2seqz
 )
 
 # Import all packages listed as Imports or Depends

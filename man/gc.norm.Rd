@@ -14,7 +14,7 @@ gc.norm(x, gc)
 }
 
 \arguments{
-  \item{file}{name of a file in the ABfreq format.}
+  \item{file}{name of a file in the seqz format.}
   \item{x}{vector of values to be normalized by GC-content, typically depth ratio values.}
   \item{gc}{vector of relative GC-content values for x.}
   \item{gz}{logical. If TRUE (the default) the function expects a gzipped file.}
@@ -23,7 +23,7 @@ gc.norm(x, gc)
 \details{
   \code{gc.norm} detects bias in \code{x} driven by \code{gc}. Specifically, for each value of \code{gc}, summary statistics are calculated for the corresponding values of \code{x}. These statistics can then be used to normalize \code{x} for \code{gc}.
 
-  \code{gc.sample.stats} extracts depth ratio and GC-content from an ABfreq file, and then uses \code{gc.norm} on the results.
+  \code{gc.sample.stats} extracts depth ratio and GC-content from an seqz file, and then uses \code{gc.norm} on the results.
 
 }
 
@@ -42,24 +42,24 @@ A list with the following elements:
 
   \dontrun{
 
-data.file <-  system.file("data", "abf.data.abfreq.txt.gz", package = "sequenza")
+data.file <-  system.file("data", "example.seqz.txt.gz", package = "sequenza")
 # read all the chromosomes:
-abf.data  <- read.abfreq(data.file)
+seqz.data  <- read.seqz(data.file)
 # Normalize coverage by GC-content
-gc.stats <- gc.norm(x = abf.data$depth.ratio,
-                    gc = abf.data$GC.percent)
+gc.stats <- gc.norm(x = seqz.data$depth.ratio,
+                    gc = seqz.data$GC.percent)
 gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
-abf.data$adjusted.ratio <- abf.data$depth.ratio /
-                           gc.vect[as.character(abf.data$GC.percent)]
+seqz.data$adjusted.ratio <- seqz.data$depth.ratio /
+                           gc.vect[as.character(seqz.data$GC.percent)]
 
 # Alternatively gather genome wide GC-stats from raw file:
 gc.stats <- gc.sample.stats(data.file)
 gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
 # Read only one chromosome:
-abf.data  <- read.abfreq(data.file, chr.name = 12)
+seqz.data  <- read.seqz(data.file, chr.name = 12)
 # Correct the coverage of the loaded chromosome:
-abf.data$adjusted.ratio <- abf.data$depth.ratio /
-                           gc.vect[as.character(abf.data$GC.percent)]
+seqz.data$adjusted.ratio <- seqz.data$depth.ratio /
+                           gc.vect[as.character(seqz.data$GC.percent)]
 
    }
 }
