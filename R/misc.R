@@ -15,3 +15,8 @@ mclapplyPb <- function(X, FUN, mc.cores = getOption("mc.cores", 2L), ...) {
    close(pb)
    res
 }
+
+dt2 <- function(x, df, ncp, log = FALSE, mean, sd) {
+   x2 <- (x - mean) / sd
+   dt(x2, df = df, ncp = ncp, log = log)
+}

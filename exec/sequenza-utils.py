@@ -10,11 +10,28 @@ from itertools import izip_longest
 from multiprocessing.pool import ThreadPool
 from functools import partial
 from multiprocessing.queues import SimpleQueue
+from contextlib import contextmanager
+from shutil     import rmtree
+from subprocess import Popen, check_call, PIPE
+from tempfile   import mkdtemp
 
-VERSION = "1.1.0"
-DATE    = "08 April 2014"
+VERSION = "2.1.0"
+DATE    = "05 September 2014"
 AUTHOR  = "Favero Francesco"
 MAIL    = "favero@cbs.dtu.dk"
+
+@contextmanager
+def named_pipe():
+   '''
+   Thanks to google for this nice solution :)
+   '''
+   dirname = mkdtemp()
+   try:
+      path = os.path.join(dirname, "temp.fifo")
+      os.mkfifo(path)
+      yield path
+   finally:
+      rmtree(dirname)
 
 def check_dir(directory):
    '''
@@ -89,7 +106,7 @@ def pileup_partial_split(pileup_line):
 
 class multiPileups:
    '''
-   Definig an iterable object merging two pilups
+   Define an iterable object merging two pileups
    '''
    def __init__(self, p1, p2):
       self.p1 = p1
@@ -107,8 +124,8 @@ class multiPileups:
       going_on = True
       while going_on:
          '''
-         If one of the files ever finish it would rise StopIteration
-         and it would stop the iteration cleanly
+         If one of the files finishes, it will raise StopIteration
+         and will stop the iteration cleanly
          '''
          try:
             if chromosome1 == chromosome2:
@@ -130,11 +147,9 @@ class multiPileups:
          except StopIteration:
             going_on = False
             raise StopIteration
-   '''
    def close(self):
       self.p1.close()
       self.p2.close()
-   '''
    def __iter__(self):
       return (iter(self.next, self._sentinel))
 
@@ -157,11 +172,11 @@ def next_gcfile(self):
       if self._chromosome:
          raise StopIteration
       else:
-         sys.exit("Error! The GC-content file is supported as the goldenpath hg19.gc5Base.txt.gz format.")
+         sys.exit("Error: the GC-content file is not in the expected format. See for example http://hgdownload-test.cse.ucsc.edu/goldenPath/hg19/gc5Base/ ")
 
 class GCmultiPileups:
    '''
-   Add GC-content to the pilup, and still make an iterable object
+   Add GC-content to the pileup, and still make an iterable object
    '''
    def __init__(self,multiPileups,gc):
       self.gc          = gc
@@ -188,11 +203,58 @@ class GCmultiPileups:
                self.pile_line = self.mpileup.next()
             else:
                self = next_gcfile(self)
-   '''
    def close(self):
       self.mpileup.close()
       self.gc.close()
+   def __iter__(self):
+      return (iter(self.next, self._sentinel))
+
+class GCmultiPileupsAltDepth:
    '''
+   Add alternative depth to the GCpileup, and again, keep it iterable
+   '''
+   def __init__(self,GCmultiPileups,p2):
+      self.mpileup = GCmultiPileups
+      self.p2      = p2
+      self._last_chromosome = None
+   _sentinel        = object()
+   def next(self):
+      self.pile_line = self.mpileup.next()
+      try:
+         chromosome2, position2, line2 = pileup_partial_split(self.p2.next())
+      except ValueError:
+         raise StopIteration
+      if self.pile_line[0] == chromosome2:
+         self._last_chromosome = self.pile_line[0]
+      going_on = True
+      while going_on:
+         '''
+         If one of the files ever finish it would rise StopIteration
+         and it would stop the iteration cleanly
+         '''
+         try:
+            if self.pile_line[0] == chromosome2:
+               self._last_chromosome = self.pile_line[0]
+               if self.pile_line[1] == position2:
+                  ref2, depth2, line2 = line2.split('\t', 2)
+                  self.pile_line.append(depth2.strip())
+                  return self.pile_line
+                  going_on = False
+               elif self.pile_line[1] > position2:
+                  chromosome2, position2, line2 = pileup_partial_split(self.p2.next())
+               elif self.pile_line[1] < position2:
+                  self.pile_line = self.mpileup.next()
+            else:
+               if self.pile_line[0] != self._last_chromosome:
+                  chromosome2, position2, line2 = pileup_partial_split(self.p2.next())
+               else:
+                  self.pile_line = self.mpileup.next()
+         except StopIteration:
+            going_on = False
+            raise StopIteration
+   def close(self):
+      self.mpileup.close()
+      self.p2.close()
    def __iter__(self):
       return (iter(self.next, self._sentinel))
 
@@ -213,7 +275,7 @@ def parse_pileup_str(line, min_depth, qlimit=20, qformat='sanger'):
    '''
    Parse the pileup format
    '''
-   if line.strip():
+   if line:
       line   = line.strip()
       try:
          chromosome, n_base, ref_base, depth, mut_list, mut_qual = line.split()
@@ -243,6 +305,8 @@ def parse_pileup_seq(seq, quality, depth, reference, qlimit=20, qformat='sanger'
       qlimit = qlimit + 33
    elif qformat == 'illumina':
       qlimit = qlimit + 64
+   else:
+      sys.exit("Supported quality format are only \"illumina\" and \"sanger\"(default).")
    quality      = quality.strip()
    block = {'seq':'','length':0}
    start     = False
@@ -320,14 +384,17 @@ def parse_pileup_seq(seq, quality, depth, reference, qlimit=20, qformat='sanger'
       sys.exit('Something went wrong on the block counting!!')
 
 
-def line_worker(line, depth_sum, qlimit=20, qformat='sanger', hom_t=0.85, het_t=0.35):
+def line_worker(line, depth_sum, qlimit=20, qformat='sanger', hom_t=0.85, het_t=0.35, alt_pileup=False):
    '''
    After the 3 files are syncronized we need to transform the pileup in a
    readable format, find the alleles, and compute the allele frequency in tumor
    '''
    if line:
       bases_list = ['A', 'C', 'G', 'T']
-      chromosome, position, ref, p1_str, p2_str, gc = line
+      if alt_pileup:
+         chromosome, position, ref, p1_str, p2_str, gc, alt_depth = line
+      else:
+         chromosome, position, ref, p1_str, p2_str, gc = line
       p1_list = p1_str.split()
       p2_list = p2_str.split()
       if int(p1_list[0]) + int(p2_list[0]) >= depth_sum and len(p1_list) == len(p2_list):
@@ -354,8 +421,11 @@ def line_worker(line, depth_sum, qlimit=20, qformat='sanger', hom_t=0.85, het_t=
                      strands_bases = [str(bases_list[ll])+str(round(p2_mu[6][ll]/float(p2_mu[2+ll]), 3)) for ll in no_zero_idx if ll != i]
                      strands_bases = ":".join(map(str, strands_bases))
                   #homoz_p2 = p2_mu[2 + i]/sum_p2
-                  # chromosome, n_base, base_ref, depth_normal, depth_sample, depth.ratio, Af, Bf, zygosity.normal, GC-content, percentage reads above quality, AB.ref, AB.tum
-                  line_out = [chromosome, position, p1_mu[0], p1_mu[1], p2_mu[1], round(p2_mu[1]/float(p1_mu[1]), 3), round(homoz_p2, 3), 0, 'hom', gc, int(sum_p2), bases_list[i], no_zero_bases, strands_bases]
+                  # chromosome, n_base, base_ref, depth_normal, depth_sample, depth.ratio, Af, Bf, zygosity.normal, GC-content, reads above quality, AB.ref, AB.tum, percentage AB.tum in fw
+                  if alt_pileup:
+                     line_out = [chromosome, position, p1_mu[0], alt_depth, p2_mu[1], round(p2_mu[1]/float(alt_depth), 3), round(homoz_p2, 3), 0, 'hom', gc, int(sum_p2), bases_list[i], no_zero_bases, strands_bases]
+                  else:
+                     line_out = [chromosome, position, p1_mu[0], p1_mu[1], p2_mu[1], round(p2_mu[1]/float(p1_mu[1]), 3), round(homoz_p2, 3), 0, 'hom', gc, int(sum_p2), bases_list[i], no_zero_bases, strands_bases]
                   return line_out
                else:
                   pass
@@ -375,10 +445,16 @@ def line_worker(line, depth_sum, qlimit=20, qformat='sanger', hom_t=0.85, het_t=
                         het_a_p2 = p2_mu[2 + i]/sum_p2
                         het_b_p2 = p2_mu[2 + ii]/sum_p2
                         if  het_a_p2 >= het_b_p2:
-                           line_out = [chromosome, position, p1_mu[0], p1_mu[1], p2_mu[1], round(p2_mu[1]/float(p1_mu[1]), 3), round(het_a_p2 , 3), round(het_b_p2 , 3) , 'het', gc, int(sum_p2), bases_list[i]+bases_list[ii], ".", "0"]
+                           if alt_pileup:
+                              line_out = [chromosome, position, p1_mu[0], alt_depth, p2_mu[1], round(p2_mu[1]/float(alt_depth), 3), round(het_a_p2 , 3), round(het_b_p2 , 3) , 'het', gc, int(sum_p2), bases_list[i]+bases_list[ii], ".", "0"]
+                           else:
+                              line_out = [chromosome, position, p1_mu[0], p1_mu[1], p2_mu[1], round(p2_mu[1]/float(p1_mu[1]), 3), round(het_a_p2 , 3), round(het_b_p2 , 3) , 'het', gc, int(sum_p2), bases_list[i]+bases_list[ii], ".", "0"]
                            return line_out
                         elif het_a_p2 < het_b_p2:
-                           line_out = [chromosome, position, p1_mu[0], p1_mu[1], p2_mu[1], round(p2_mu[1]/float(p1_mu[1]), 3), round(het_b_p2 , 3), round(het_a_p2 , 3) , 'het', gc, int(sum_p2), bases_list[ii]+bases_list[i], ".", "0"]
+                           if alt_pileup:
+                              line_out = [chromosome, position, p1_mu[0], alt_depth, p2_mu[1], round(p2_mu[1]/float(alt_depth), 3), round(het_b_p2 , 3), round(het_a_p2 , 3) , 'het', gc, int(sum_p2), bases_list[ii]+bases_list[i], ".", "0"]
+                           else:
+                              line_out = [chromosome, position, p1_mu[0], p1_mu[1], p2_mu[1], round(p2_mu[1]/float(p1_mu[1]), 3), round(het_b_p2 , 3), round(het_a_p2 , 3) , 'het', gc, int(sum_p2), bases_list[ii]+bases_list[i], ".", "0"]
                            return line_out
                   else:
                      pass
@@ -429,7 +505,7 @@ class abfreReduce:
       self._gc              = float(line_ls[9])
       self._n               = 1
       self.line_dict = {'top': '', 'middle': [], 'end': ''}
-      if float(line_ls[6]) < 1.0:
+      if line_ls[12]+line_ls[8] != '.hom':
          self.line_dict['top'] = line_ls
    def __addline__(self, line_ls, line):
       self._last_position    = int(line_ls[1])
@@ -438,7 +514,7 @@ class abfreReduce:
       self._ratio           += float(line_ls[5])
       self._gc              += float(line_ls[9])
       self._n               += 1
-      if float(line_ls[6]) < 1.0:
+      if line_ls[12]+line_ls[8] != '.hom':
          self.line_dict['middle'].append(line_ls)
    def __do_dict__(self):
       gc = str(int(round(self._gc/self._n, 0)))
@@ -502,14 +578,15 @@ def seq_map(seq_list):
    """
    ...
    """
-   counter = {"A":0,"C":0,"G":0,"N":0,"T":0}
+   counter = {"A":0, "C":0, "G":0, "N":0, "T":0, "R":0, "Y":0, "S":0, "W":0, "K":0, "M":0, "B":0, "D":0, "H":0, "V":0}
    for nucleotide in seq_list:
       counter[nucleotide] +=1
    return counter
 
 def process_gc_from_pipe(in_queue, window_size):
    """
-   whatever...
+   Process fasta from a multiprocessing.queue and
+   compute the percentage of GC within a given window
    """
    base_counter  = 1
    window_size   = float(window_size)
@@ -519,7 +596,7 @@ def process_gc_from_pipe(in_queue, window_size):
       if seq_list != 'EOF':
          if type(seq_list) == str:
             if seq_list.startswith('>'):
-               chromosome = seq_list.strip('>')
+               chromosome = seq_list.strip('>').split(" ")[0]
                print "variableStep chrom=" + chromosome + " span=" + str(int(window_size))
                base_counter = 1
          else:
@@ -527,19 +604,19 @@ def process_gc_from_pipe(in_queue, window_size):
             stats    = seq_map(seq_list)
             seq_len  = len(seq_list)
             if seq_len == window_size:
-               if stats['N']/window_size >= 0.75:
+               if (stats['N'] + stats['R'] + stats['Y'] + stats['K'] + stats['M'] + stats['B'] + stats['D'] + stats['H'] + stats['V'])/window_size >= 0.75:
                   base_counter = base_counter + window_size
                   pass
                else:
-                  gc_percent = 100 * (stats['G'] + stats['C'])/window_size
+                  gc_percent = 100 * ((stats['G'] + stats['C'] + stats['S'])/window_size)
                   print str(int(base_counter)) + "\t" + str(gc_percent)
                   base_counter = base_counter + window_size
             else:
-               if stats['N'] / seq_len >= 0.75:
+               if (stats['N'] + stats['R'] + stats['Y'] + stats['K'] + stats['M'] + stats['B'] + stats['D'] + stats['H'] + stats['V'])/window_size >= 0.75:
                   base_counter = base_counter + seq_len
                   pass
                else:
-                  gc_percent   = 100 * (stats['G'] + stats['C'])/seq_len
+                  gc_percent   = 100 * ((stats['G'] + stats['C'] + stats['S'])/float(seq_len))
                   print str(int(base_counter)) + "\t" + str(gc_percent)
                   base_counter = base_counter + seq_len
       else:
@@ -558,29 +635,67 @@ class DefaultHelpParser(argparse.ArgumentParser):
         self.print_help()
         sys.exit(2)
 
+
+def DOpup2seqz(p1, p2, gc, n2, n, qlimit, qformat, hom, het, nproc, chunk, fileout, out_header):
+   stream_mpileup = IterableQueue()
+   if not n2:
+      line_worker_partial = partial(line_worker, depth_sum=n, qlimit=qlimit, qformat=qformat, hom_t=hom, het_t=het)
+      with xopen(p1, 'rb') as normal, xopen(p2, 'rb') as tumor, xopen(gc, 'rb') as gc_file:
+         pup = multiPileups(normal,tumor)
+         pup = GCmultiPileups(pup, gc_file)
+         fileout.write("\t".join(out_header) + '\n')
+         if nproc > 0:
+            p = multiprocessing.Pool(processes=nproc)
+            for res in p.imap(line_worker_partial, pup,chunksize=chunk):
+               if res:
+                  fileout.write('\t'.join(map(str,res))+'\n')
+         else:
+            for line in pup:
+               res = line_worker_partial(line)
+               if res:
+                  fileout.write('\t'.join(map(str,res))+'\n')
+   else:
+      line_worker_partial = partial(line_worker, depth_sum=n, qlimit=qlimit, qformat=qformat, hom_t=hom, het_t=het, alt_pileup=True) 
+      with xopen(p1, 'rb') as normal, xopen(p2, 'rb') as tumor, xopen(gc, 'rb') as gc_file, xopen(n2, 'rb') as alt_normal:
+         pup = multiPileups(normal,tumor)
+         pup = GCmultiPileups(pup, gc_file)
+         pup = GCmultiPileupsAltDepth(pup, alt_normal)
+         fileout.write("\t".join(out_header) + '\n')
+         if nproc > 0:
+            p = multiprocessing.Pool(processes=nproc)
+            for res in p.imap(line_worker_partial, pup,chunksize=chunk):
+               if res:
+                  fileout.write('\t'.join(map(str,res))+'\n')
+         else:
+            for line in pup:
+               res = line_worker_partial(line)
+               if res:
+                  fileout.write('\t'.join(map(str,res))+'\n')
+
+
 def pileup2acgt(parser, subparser):
    subparser.add_argument('pileup', metavar='pileup',
-                   help='pileup (SAMtools) file in input, if a gzipped file will be selected it will be opened in gzip mode, if file name is - it would be loaded from STDIN.')
+                   help='Name of the input pileup (SAMtools) file. If the filename ends in .gz it will be opened in gzip mode. If the file name is - it will be read from STDIN.')
    subparser.add_argument('-n', dest='n', type=int,
-                   help='The minimum read depth on the base to consider the mutation on it.')
-   parser_pup2muoutput      = subparser.add_argument_group(title='Output', description='Argument that involve the output destination.')
+                   help='The minimum read depth on a base required to make a mutation call.')
+   parser_pup2muoutput      = subparser.add_argument_group(title='Output', description='Arguments that involve the output destination.')
    parser_pup2muoutput.add_argument('-o', '--output', dest='output', type = str, default = '-',
-                       help='Destination of the output file. To use gzip compression name the file ending by .gz. (default STDOUT).')
+                       help='Name of the output file. To use gzip compression name the file ending in .gz. (default STDOUT).')
    parser_pup2muoutput.add_argument('--quiet', dest='quiet', action="store_true",
-                       help='Do not output additional debugging.')
-   parser_pup2muperformance = subparser.add_argument_group(title='Performance', description='Argument that can effect the performance.')
-   parser_pup2muperformance.add_argument('-p', '--processes', dest='nproc', default="0", type=int,
-                   help='Set the number of processes to split the parsing job. If it is set to 0 (default), the job will occurs with no forking to other processes. If it is bigger then 0 it is more efficient with an adequate chunk size, otherwise with smaller chuncks (eg.: < 1000) it will loose performance.')
-   parser_pup2muperformance.add_argument('-c', '--chunk', dest='chunk', default="0", type=int,
-                   help='Set the size (number of lines) of the portion of the file to assign to each process. If is set to 0 (default) wil set to default also the --processes parameter (-p 0). An adequate chunk size defends on the number of processes and on the file size (chunk size bigger then total number of line is not good). However a chunk size ~ 1000 leads to better performance.')
+                       help='Do not output additional debugging information.')
+   parser_pup2muperformance = subparser.add_argument_group(title='Performance', description='Arguments that can effect the performance.')
+   parser_pup2muperformance.add_argument('-p', '--processes', dest='nproc', default=0, type=int,
+                   help='Set the number of processes to split the parsing job. If set to 0 (default), the job will occur with no forking to other processes.')
+   parser_pup2muperformance.add_argument('-c', '--chunk', dest='chunk', default=1000, type=int,
+                   help='Set the number of input lines to assign to each process, if NPROC > 0. (Default = 1000)')
    parser_pup2muqualitysets = subparser.add_argument_group(title='Quality and Format', description='Argument that change the quality threshold or the quality format.')
    parser_pup2muqualitysets.add_argument('-q', '--qlimit', dest='qlimit', default=20,type=int,
-                   help='Minimum nucleotide quality score for consider in the counts.')
+                   help='Minimum nucleotide quality score for inclusion in the counts.')
    parser_pup2muqualitysets.add_argument('-f', '--qformat', dest='qformat', default="sanger",
-                   help='Quality format, options are sanger or illumina, it will add an offset of 33 or 64 respectively to the qlimit value.')
+                   help='Quality format, options are "sanger" or "illumina". This will add an offset of 33 or 64 respectively to the qlimit value.')
    parser_pup2muinfo        = subparser.add_argument_group(title='Info',description='Other Information.')
    parser_pup2muinfo.add_argument('-v', '--version', action="version", version='%(prog)s version: ' + VERSION + ". " + DATE,
-                   help='Just display the version information and exit.')
+                   help='Display the version information and exit.')
    return parser.parse_args()
 
 def pileup2seqz(parser, subparser):
@@ -589,25 +704,58 @@ def pileup2seqz(parser, subparser):
    parser_ABperformance = subparser.add_argument_group(title='Performance', description='Options affecting the performance.')
    parser_ABqualitysets = subparser.add_argument_group(title='Quality and Format', description='Options that change the quality threshold and format.')
    parser_ABinput.add_argument('-n', '--normal', dest = 'normal', required = True,
-                   help='The pileup of the reference/normal sample')
+                   help='Name of the pileup file from the reference/normal sample')
    parser_ABinput.add_argument('-t', '--tumor', dest = 'tumor', required = True,
-                   help='The pileup of the tumor sample')
+                   help='Name of the pileup file from the tumor sample')
    parser_ABinput.add_argument('-gc', dest = 'gc', metavar = 'gc', required = True,
                    help='The GC-content file coming from UCSC genome browser, or generated in the same UCSC format')
+   parser_ABinput.add_argument('-n2', '--normal2', dest = 'normal2', type = str, default = None,
+                   help='EXPERIMENTAL: Optional pileup used only to compute the depth.normal and depth-ratio, instead of \"normal\"')
    parser_ABqualitysets.add_argument('-q', '--qlimit', dest = 'qlimit', default = 20, type = int,
-                   help='Minimum nucleotide quality score for consider in the counts. Default 20.')
+                   help='Minimum nucleotide quality score for inclusion in the counts. Default 20.')
    parser_ABqualitysets.add_argument('-f', '--qformat', dest = 'qformat', default = "sanger",
-                   help='Quality format, options are sanger or illumina, it will add an offset of 33 or 64 respectively to the qlimit value. Default "sanger".')
+                   help='Quality format, options are "sanger" or "illumina". This will add an offset of 33 or 64 respectively to the qlimit value. Default "sanger".')
    parser_ABqualitysets.add_argument('-N', dest = 'n', type = int, default = 20,
                    help='Threshold to filter positions by the sum of read depth of the two samples. Default 20.')
    parser_ABgenotype.add_argument('--hom', dest = 'hom', type = float, default = 0.9,
                    help='Threshold to select homozygous positions. Default 0.9.')
    parser_ABgenotype.add_argument('--het', dest = 'het', type = float, default = 0.25,
                    help='Threshold to select heterozygous positions. Default 0.25.')
-   parser_ABperformance.add_argument('-p', '--processes', dest='nproc', default="0", type=int,
-                   help='Set the number of processes to split the genotyping. If it is set to 0 (default), the job will occurs with no forking to other processes. If it is bigger then 0 it is more efficient with an adequate chunk size, otherwise with smaller chunks (eg.: < 1000) it will loose performance. Default 0')
-   parser_ABperformance.add_argument('-c', '--chunk', dest='chunk', default="1", type=int,
-                   help='Set the number of lines to assign to each process. If is set to 1 (default) will set to default also the --processes parameter (-p 0). An adequate chunk size defends on the number of processes and on the file size (chunk size bigger then total number of line is not good). However a chunk size ~ 1000 leads to better performance. Default 1.')
+   parser_ABperformance.add_argument('-p', '--processes', dest='nproc', default=0, type=int,
+                   help='Set the number of processes to split the parsing job. If set to 0 (default), the job will occur with no forking to other processes.')
+   parser_ABperformance.add_argument('-c', '--chunk', dest='chunk', default=1000, type=int,
+                   help='Set the number of input lines to assign to each process, if NPROC > 0. (Default = 1000)')
+   return parser.parse_args()
+
+def bam2seqz(parser, subparser):
+   parser_ABinput       = subparser.add_argument_group(title='Input Files',description='Required input files.')
+   parser_ABgenotype    = subparser.add_argument_group(title='Genotyper',description='Options regarding the genotyping.')
+   parser_ABsamtools = subparser.add_argument_group(title='Samtools', description='Options regarding samtools.')
+   parser_ABqualitysets = subparser.add_argument_group(title='Quality and Format', description='Options that change the quality threshold and format.')
+   parser_ABinput.add_argument('-n', '--normal', dest = 'normal', required = True,
+                   help='Name of the BAM file from the reference/normal sample')
+   parser_ABinput.add_argument('-t', '--tumor', dest = 'tumor', required = True,
+                   help='Name of the BAM file from the tumor sample')
+   parser_ABinput.add_argument('-gc', dest = 'gc', metavar = 'gc', required = True,
+                   help='The GC-content file coming from UCSC genome browser, or generated in the same UCSC format')
+   parser_ABinput.add_argument('-F', "--fasta", dest = 'fasta', metavar = 'fasta', required = True,
+                   help='The reference FASTA file used to generate the pileup')
+   parser_ABinput.add_argument('-n2', '--normal2', dest = 'normal2', type = str, default = None,
+                   help='EXPERIMENTAL: Optional BAM used only to compute the depth.normal and depth-ratio, instead of \"normal\"')
+   parser_ABqualitysets.add_argument('-q', '--qlimit', dest = 'qlimit', default = 20, type = int,
+                   help='Minimum nucleotide quality score for inclusion in the counts. Default 20.')
+   parser_ABqualitysets.add_argument('-f', '--qformat', dest = 'qformat', default = "sanger",
+                   help='Quality format, options are "sanger" or "illumina". This will add an offset of 33 or 64 respectively to the qlimit value. Default "sanger".')
+   parser_ABqualitysets.add_argument('-N', dest = 'n', type = int, default = 20,
+                   help='Threshold to filter positions by the sum of read depth of the two samples. Default 20.')
+   parser_ABgenotype.add_argument('--hom', dest = 'hom', type = float, default = 0.9,
+                   help='Threshold to select homozygous positions. Default 0.9.')
+   parser_ABgenotype.add_argument('--het', dest = 'het', type = float, default = 0.25,
+                   help='Threshold to select heterozygous positions. Default 0.25.')
+   parser_ABsamtools.add_argument("-S", '--samtools', dest = 'samtools', type = str, default = "samtools",
+                   help='Path of samtools to use for the pileup generation.')
+   parser_ABsamtools.add_argument("-C", '--chromosome', dest = 'chr', type = str, default = None,
+                   help='Argument to restrict the input/output to a chromosome or a chromosome region. Coordinate format is Name:pos.start-pos.end, eg: chr17:7565097-7590856, for a particular region; eg: chr17, for the entire chromosome. Chromosome name are depending of the BAM file and FASTA reference used for alignment. Default behaviour is not selecting any cromosome.')
    return parser.parse_args()
 
 def GC_windows(parser, subparser):
@@ -619,16 +767,16 @@ def GC_windows(parser, subparser):
 
 def merge_pileups(parser, subparser):
    subparser.add_argument('-1', '--pileup1', dest = 'p1', required = True,
-                   help='The first pileup')
+                   help='Name of the first pileup file')
    subparser.add_argument('-2', '--pileup2', dest = 'p2', required = True,
-                   help='The second pileup, will show as the last columns set')
+                   help='Name of the second pileup, will show as the last columns set')
    return parser.parse_args()
 
 def reduce_seqz(parser, subparser):
-   subparser.add_argument('-a', '--seqz', dest = 'seqz', required = True,
+   subparser.add_argument('-s', '--seqz', dest = 'seqz', required = True,
                    help='An seqz file from the pileup2seqz function.')
    subparser.add_argument('-w', '--window', dest = 'w', type = int, default = 50,
-                   help='Window size used to binning the original seqz file. Default is 50.')
+                   help='Window size used for binning the original seqz file. Default is 50.')
    return parser.parse_args()
 
 def main():
@@ -636,15 +784,16 @@ def main():
    Execute the function with args
    '''
    parser = DefaultHelpParser(prog = __file__, formatter_class=lambda prog: SubcommandHelpFormatter(prog, max_help_position=20, width=75),
-                              description='This script is part of Sequenza http://www.cbs.dtu.dk/biotools/sequenza/ \n Sequenza Utils is an ensemble of tools capable of perform various tasks, primarily aimed to convert bam/pileup files to a format usable by the sequenza R package.',
-                              usage= '%(prog)s module [options]', epilog = 'This is version {0} - Francesco Favero - {1}'.format(VERSION, DATE))
+                              description='\nsequenza-utils.py \nThis script is part of Sequenza http://www.cbs.dtu.dk/biotools/sequenza/ \n\nSequenza Utils is a set of tools to perform various tasks, primarily aimed to convert bam/pileup files to a format usable by the sequenza R package.',
+                              usage= 'sequenza-utils.py command [options]', epilog = 'This is version {0} - Francesco Favero - {1}'.format(VERSION, DATE))
    subparsers = parser.add_subparsers(dest='module')
    subparsers.metavar = None
-   parser_pileup2seqz  = subparsers.add_parser('pileup2seqz', help = ' given a paired set of pileup (normal and matching tumor), and GC-content genome-wide information returns the common positions with A and B alleles frequencies',formatter_class=lambda prog: SubcommandHelpFormatter(prog,max_help_position=39, width=90))
-   parser_reduce_seqz = subparsers.add_parser('seqz-binning', help = 'Binning the seqz file to reduce file size and memory requirement for the analysis.')
-   parser_pup2mu = subparsers.add_parser('pileup2acgt', help = 'convert pileup format to ACGT format',formatter_class=lambda prog: SubcommandHelpFormatter(prog,max_help_position=30, width=90))
-   parser_gc_window  = subparsers.add_parser('GC-windows', help = 'Given a fasta file and a window size it computes the GC percentage across the sequences, and returns a file in the same format as gc5Base from UCSC')
-   parser_merge_pileups = subparsers.add_parser('merge-pileups', help = 'Merging two pileups, it finds the common positions and return an mpileup file adding the second pilep as last 3 columns.')
+   parser_bam2seqz  = subparsers.add_parser('bam2seqz', help = 'Process a paired set of BAM files (tumor and matching normal), and GC-content genome-wide information, to extract the common positions with A and B alleles frequencies',formatter_class=lambda prog: SubcommandHelpFormatter(prog,max_help_position=39, width=90))
+   parser_pileup2seqz  = subparsers.add_parser('pileup2seqz', help = 'Process a paired set of pileup files (tumor and matching normal), and GC-content genome-wide information, to extract the common positions with A and B alleles frequencies',formatter_class=lambda prog: SubcommandHelpFormatter(prog,max_help_position=39, width=90))
+   parser_reduce_seqz = subparsers.add_parser('seqz-binning', help = 'Perform binning of the seqz file to reduce file size and memory requirement for the analysis.')
+   parser_pup2mu = subparsers.add_parser('pileup2acgt', help = 'Convert pileup format to ACGT format',formatter_class=lambda prog: SubcommandHelpFormatter(prog,max_help_position=30, width=90))
+   parser_gc_window  = subparsers.add_parser('GC-windows', help = 'Compute the average GC content in sliding windows from a fasta file, output in the same format as gc5Base from UCSC')
+   parser_merge_pileups = subparsers.add_parser('merge-pileups', help = 'Merge two pileups by finding the common positions, and return an mpileup file adding the second pileup as the last 3 columns.')
    try:
       used_module =  sys.argv[1]
       if used_module == "pileup2acgt":
@@ -662,7 +811,7 @@ def main():
                logging.warning("Converting " + args.pileup + " -- size = %0.1f MB --" % file_size + " to ACGT..." )
             else:
                logging.warning("Converting " + args.pileup + " from STDIN to ACGT..." )
-            logging.warning("Using chunks of " + str(args.chunk) + " line(s), and splitting the job in " + str(args.nproc+1)  + " process(es).")
+            logging.warning("Using chunks of " + str(args.chunk) + " line(s), and splitting the job into " + str(args.nproc+1)  + " process(es).")
          with xopen(args.output, "wb") as fileout:
             with xopen(args.pileup, "rb") as f:
                fileout.write('chr' + "\t" + 'n_base' + "\t" + 'ref_base' + "\t" +  'read.depth' + "\t" + 'A' + "\t" + 'C' + "\t" + 'G' + "\t" + 'T' + "\t" + "strand" + '\n')
@@ -688,31 +837,60 @@ def main():
                seconds =  end-start
                logging.warning("Pileup to ACGT: processed " + str(counter) + " lines in " + str(seconds) + " seconds")
 
+      elif used_module == "bam2seqz":
+         args = bam2seqz(parser, parser_bam2seqz)
+         with xopen('-', "wb") as fileout:
+            out_header = ["chromosome", "position", "base.ref", "depth.normal", "depth.tumor", "depth.ratio", "Af", "Bf", "zygosity.normal", "GC.percent", "good.reads", "AB.normal", "AB.tumor", "tumor.strand"]
+            if args.chr:
+               cmd_tum1 = [args.samtools, "view", "-u", args.tumor, args.chr]
+               cmd_nor1 = [args.samtools, "view", "-u", args.normal, args.chr]
+            else:
+               cmd_tum1 = [args.samtools, "view", "-u", args.tumor]
+               cmd_nor1 = [args.samtools, "view", "-u", args.normal]
+
+            cmd_tum2 = [args.samtools, "mpileup", "-f", args.fasta, "-q " + str(args.qlimit), "-"]
+            cmd_nor2 = [args.samtools, "mpileup", "-f", args.fasta, "-q " + str(args.qlimit), "-"]
+            if args.normal2:
+               if args.chr:
+                  cmd_nor3 = [args.samtools, "view", "-u", args.normal2, args.chr]
+               else:
+                  cmd_nor3 = [args.samtools, "view", "-u", args.normal2]
+               cmd_nor4 = [args.samtools, "mpileup", "-f", args.fasta, "-q " + str(args.qlimit), "-"]
+               tum1 = Popen(cmd_tum1, stdout = PIPE)
+               nor1 = Popen(cmd_nor1, stdout = PIPE)
+               nor2 = Popen(cmd_nor3, stdout = PIPE)
+               with named_pipe() as tfifo, named_pipe() as nfifo, named_pipe() as n2fifo:
+                  res = multiprocessing.Process(target = DOpup2seqz, args = (nfifo, tfifo, args.gc, n2fifo, args.n,  args.qlimit, args.qformat, args.hom, args.het, 0, 1, fileout, out_header))
+                  res.start()
+                  with open(nfifo, 'wb', 0) as normal, open(tfifo, 'wb', 0) as tumor, open(n2fifo, 'wb', 0) as normal2:
+                     fifos = [Popen(cmd_tum2, stdin=tum1.stdout, stdout=tumor, stderr=PIPE), Popen(cmd_nor2, stdin=nor1.stdout, stdout=normal, stderr=PIPE), Popen(cmd_nor4, stdin=nor2.stdout, stdout=normal2, stderr=PIPE)]
+                     tum1.stdout.close()
+                     nor1.stdout.close()
+                     nor2.stdout.close()
+                  res.join()
+                  for fifo in fifos:
+                     fifo.terminate()
+            else:
+               tum1 = Popen(cmd_tum1, stdout = PIPE)
+               nor1 = Popen(cmd_nor1, stdout = PIPE)
+               with named_pipe() as tfifo, named_pipe() as nfifo:
+                  res = multiprocessing.Process(target = DOpup2seqz, args = (nfifo, tfifo, args.gc, args.normal2, args.n,  args.qlimit, args.qformat, args.hom, args.het, 0, 1, fileout, out_header))
+                  res.start()
+                  with open(nfifo, 'wb', 0) as normal, open(tfifo, 'wb', 0) as tumor:
+                     fifos = [Popen(cmd_tum2, stdin=tum1.stdout, stdout=tumor, stderr=PIPE), Popen(cmd_nor2, stdin=nor1.stdout, stdout=normal, stderr=PIPE)]
+                     tum1.stdout.close()
+                     nor1.stdout.close()
+                  res.join()
+                  for fifo in fifos:
+                     fifo.terminate()
+
       elif used_module == "pileup2seqz":
          args = pileup2seqz(parser, parser_pileup2seqz)
          with xopen('-', "wb") as fileout:
             out_header = ["chromosome", "position", "base.ref", "depth.normal", "depth.tumor", "depth.ratio", "Af", "Bf", "zygosity.normal", "GC.percent", "good.reads", "AB.normal", "AB.tumor", "tumor.strand"]
-            p1 = args.normal
-            p2 = args.tumor
-            gc = args.gc
-            stream_mpileup = IterableQueue()
-            line_worker_partial = partial(line_worker, depth_sum=args.n, qlimit=args.qlimit, qformat=args.qformat, hom_t=args.hom, het_t=args.het)
-            with xopen(p1, 'rb') as normal, xopen(p2, 'rb') as tumor, xopen(gc, 'rb') as gc_file:
-               pup = multiPileups(normal,tumor)
-               pup = GCmultiPileups(pup, gc_file)
-               fileout.write("\t".join(out_header) + '\n')
-               if args.chunk > 1 or args.nproc > 0:
-                  #p = ThreadPool(processes=args.nproc)
-                  p = multiprocessing.Pool(processes=args.nproc)
-                  for res in p.imap(line_worker_partial, pup,chunksize=args.chunk):
-                     #for res in results.get(99):
-                     if res:
-                        fileout.write('\t'.join(map(str,res))+'\n')
-               else:
-                  for line in pup:
-                     res = line_worker_partial(line)
-                     if res:
-                        fileout.write('\t'.join(map(str,res))+'\n')
+            res = multiprocessing.Process(target = DOpup2seqz, args = (args.normal, args.tumor, args.gc, args.normal2, args.n,  args.qlimit, args.qformat, args.hom, args.het, args.nproc, args.chunk, fileout, out_header))
+            res.start()
+         res.join()
 
 
       elif used_module == "GC-windows":

@@ -3,7 +3,7 @@
 \title{Compute the confidence interval of cellularity and ploidy}
 
 \description{
-  Compute the confidence intervals for a cellularity-ploidy likelihood matrix.
+  Compute the confidence intervals for a cellularity-ploidy posterior probability matrix.
 }
 
 \usage{
@@ -16,12 +16,12 @@
 
 \value{
   A list with 6 items:
-  \item{values.ploidy}{matrix of ploidy values with respective likelihood.}
+  \item{values.ploidy}{matrix of ploidy values with respective posterior probability.}
   \item{confint.ploidy}{boundaries of the confidence interval of the estimated ploidy.}
-  \item{max.ploidy}{point estimate of the ploidy value that has the maximum likelihood.}
-  \item{values.cellularity}{matrix of cellularity values with respective likelihood.}
+  \item{max.ploidy}{point estimate of the ploidy value that has the maximum posterior probability.}
+  \item{values.cellularity}{matrix of cellularity values with respective posterior probability.}
   \item{confint.cellularity}{boundaries of the confidence interval of the estimated cellularity.}
-  \item{max.cellularity}{point estimate of the cellularity value that has the maximum likelihood.}
+  \item{max.cellularity}{point estimate of the cellularity value that has the maximum posterior probability.}
 }
 
 \seealso{

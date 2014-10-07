@@ -1,8 +1,11 @@
 Package: sequenza
-Title: Analysis and visualization of tumor genome sequencing data.
-Description: This package provides tools to analyze NGS DNA-sequencing from paired normal-tumor samples, including cellularity and ploidy estimation; mutation and copy number (allele-specific and total copy number) detection, quantification and visualization.
-Version: 2.0.0
-Date: 2014-04-08
+Title: Copy number estimation from tumor genome sequencing data.
+Description: This package provides tools to analyze genomic sequencing data from
+ paired normal-tumor samples, including cellularity and ploidy estimation; mutation
+ and copy number (allele-specific and total copy number) detection, quantification 
+ and visualization.
+Version: 2.1.0
+Date: 2014-10-07
 Author: Francesco Favero, Andrea M. Marquard, Tejal Joshi, Aron C. Eklund
 Maintainer: Francesco Favero <favero@cbs.dtu.dk>
 Depends: R (>= 3.0.0), copynumber, parallel, squash
@@ -10,7 +13,7 @@ Suggests:
 License: GPL-3
 URL: http://cbs.dtu.dk/biotools/sequenza/, Mailing list:
         https://groups.google.com/forum/#!forum/sequenza-user-group
-Packaged: 2014-04-08 03:55:56 UTC; favero
+Packaged: 2014-10-08 14:25:00 UTC; favero
 NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2014-04-08 07:02:41
+Date/Publication: 2014-10-08 17:22:18

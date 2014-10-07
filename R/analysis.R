@@ -69,10 +69,10 @@ read.acgt <- function (file, colClasses = c('character', 'integer', 'character',
 }
 
 gc.norm <- function (x, gc) {
-   dr.by.gc <- split(x, gc)
+   dr.by.gc <- split(x = x, f = gc)
    raw <- t(sapply(dr.by.gc, quantile, probs = c(0.25, 0.5, 0.75), na.rm = TRUE))
-   dr.by.gc.median <- sapply(dr.by.gc, median, na.rm = TRUE)
-   dr.by.gc.mean <- sapply(dr.by.gc, mean, na.rm = TRUE)
+   dr.by.gc.mean <- sapply(dr.by.gc, FUN = mean, na.rm = TRUE)
+   dr.by.gc.median <- sapply(dr.by.gc, FUN = median, na.rm = TRUE)
    adj <- sweep(raw, 1, dr.by.gc.median, '/')
    list(raw = raw, adj = adj, gc.values = as.numeric(names(dr.by.gc)),
         raw.mean = dr.by.gc.mean, raw.median = dr.by.gc.median)
@@ -85,7 +85,7 @@ gc.sample.stats <- function (file, gz = TRUE) {
    } else {
       seqz.data <- read.delim(pipe(paste('cut -f 1,6,10', file)), colClasses = colClasses)
    }
-   gc.stats <- gc.norm(x = seqz.data$depth.ratio,
+   gc.stats <- gc.norm(x  = seqz.data$depth.ratio,
                        gc = seqz.data$GC.percent)
    chr.ord  <- unique(seqz.data$chromosome)
    chr.dim  <- lapply(X = split(seqz.data$chromosome, seqz.data$chromosome), FUN = length)
@@ -100,7 +100,7 @@ windowValues <- function(x, positions, chromosomes, window = 1e6, overlap = 0,
                          weight = rep.int( x = 1, times = length(x)), start.coord = 1) {
   weight   <- sqrt(weight)
   overlap  <- as.integer(overlap)
-  window.offset <- window - round(window * (overlap / (overlap + 1)))
+  window.offset <- as.integer(window - round(window * (overlap / (overlap + 1))))
   chr.ordered <- unique(chromosomes)
   data.splitByChr    <- split(data.frame(pos = positions, x = x, weight = weight), 
                               f = factor(chromosomes, levels = chr.ordered))
@@ -109,7 +109,7 @@ windowValues <- function(x, positions, chromosomes, window = 1e6, overlap = 0,
     if (!is.null(start.coord)) {
       range.pos[1] <- as.integer(start.coord)
     }
-    beam.coords <- seq(range.pos[1], range.pos[2], by = window.offset)
+    beam.coords <- seq.int(range.pos[1], range.pos[2], by = window.offset)
     if (max(beam.coords) != range.pos[2] ) {
       beam.coords <- c(beam.coords, range.pos[2])
     }
@@ -131,12 +131,12 @@ windowValues <- function(x, positions, chromosomes, window = 1e6, overlap = 0,
 }
 
 get.ci <- function(cp.table, level = 0.95) {
-  znormsort <- sort(cp.table$loglik, decreasing = TRUE)
+  znormsort <- sort(cp.table$lpp, decreasing = TRUE)
   znormcumLik <- cumsum(znormsort)
   n <- sapply(level, function(x) sum(znormcumLik < x) + 1)
   LikThresh <- znormsort[n]
-  values.x <- data.frame(x = cp.table$ploidy, y = apply(cp.table$loglik, 1, max))
-  values.y <- data.frame(x = apply(cp.table$loglik, 2, max), y = cp.table$cellularity)
+  values.x <- data.frame(x = cp.table$ploidy, y = apply(cp.table$lpp, 1, max))
+  values.y <- data.frame(x = apply(cp.table$lpp, 2, max), y = cp.table$cellularity)
   up.x  <- max(values.x$x[values.x$y >= LikThresh])
   low.x <- min(values.x$x[values.x$y >= LikThresh])
   max.x <- values.x$x[which.max(values.x$y)]
@@ -190,7 +190,7 @@ mutation.table <- function(seqz.tab, mufreq.treshold = 0.15, min.reads = 40, min
    seqz.tab     <- seqz.tab[mufreq.filt, ]
    if (!is.null(segments)) {
       for (i in 1:nrow(segments)) {
-         pos.filt <- seqz.tab$chromosome == segments$chrom[i] & seqz.tab$position >= segments$start.pos[i] & seqz.tab$position <= segments$end.pos[i]
+         pos.filt <- seqz.tab$chromosome == segments$chromosome[i] & seqz.tab$position >= segments$start.pos[i] & seqz.tab$position <= segments$end.pos[i]
          seqz.tab$adjusted.ratio[pos.filt] <- segments$depth.ratio[i]
       }
    }
@@ -219,28 +219,38 @@ mutation.table <- function(seqz.tab, mufreq.treshold = 0.15, min.reads = 40, min
    }
 }
 
-find.breaks <- function(seqz.baf, gamma = 80, kmin = 10, baf.thres = c(0, 0.5), verbose = FALSE, ...) {
+find.breaks <- function(seqz.baf, gamma = 80, kmin = 10, baf.thres = c(0, 0.5),
+                        verbose = FALSE, seg.algo = "aspcf", ...) {
    chromosome <- gsub(x = seqz.baf$chromosome, pattern = "chr", replacement = "")
    logR = data.frame(chrom = chromosome,
                      pos = seqz.baf$position,
                      s1 = log2(seqz.baf$adjusted.ratio))
-   BAF = data.frame(chrom = chromosome,
-                    pos = seqz.baf$position,
-                    s1 = seqz.baf$Bf)
    logR.wins <- copynumber::winsorize(logR, verbose = verbose)
-   allele.seg <- copynumber::aspcf(logR = logR.wins, BAF = BAF, baf.thres = baf.thres,
-                       verbose = verbose, gamma = gamma, kmin = kmin, ...)
+   if (seg.algo == "aspcf"){
+      BAF = data.frame(chrom = chromosome,
+                       pos = seqz.baf$position,
+                       s1 = seqz.baf$Bf)
+      allele.seg <- copynumber::aspcf(logR = logR.wins, BAF = BAF, baf.thres = baf.thres,
+                          verbose = verbose, gamma = gamma, kmin = kmin, ...)
+   } else if (seg.algo == "pcf") {
+      allele.seg <- copynumber::pcf(data = logR.wins, verbose = verbose,
+                                    gamma = gamma, kmin = kmin, ...)
+   } else {
+      stop("Supported segmentation algorithms are only \'aspcf\' or \'pcf\' from the copynumber package.")
+   }
     if (length(grep("chr", seqz.baf$chromosome)) > 0) {
         allele.seg$chrom <- paste("chr", allele.seg$chrom, sep = "")
     }
-    allele.seg[allele.seg$end.pos - allele.seg$start.pos != 0,
-               c("chrom", "start.pos", "end.pos")]
+   breaks   <- allele.seg[, c("chrom", "start.pos", "end.pos", "arm")]
+   not.uniq <- which(breaks$end.pos == c(breaks$start.pos[-1],0))
+   breaks$end.pos[not.uniq]<- breaks$end.pos[not.uniq] - 1
+   breaks
 }
 
 segment.breaks <- function(seqz.tab, breaks, min.reads.baf = 1,
                            weighted.mean = TRUE) {
-   if (weighted.mean == TRUE){
-      w.r     <- sqrt(seqz.tab$depth.tumor)
+   if (weighted.mean){
+      w.r     <- sqrt(seqz.tab$depth.normal)
       rw      <- seqz.tab$adjusted.ratio * w.r
       w.b     <- sqrt(seqz.tab$good.reads)
       bw      <- seqz.tab$Bf * w.b
@@ -256,28 +266,62 @@ segment.breaks <- function(seqz.tab, breaks, min.reads.baf = 1,
       breaks.i    <- breaks[breaks$chrom == names(seqz.tab)[i], ]
       nb          <- nrow(breaks.i)
       breaks.vect <- do.call(cbind, split.data.frame(breaks.i[,c("start.pos", "end.pos")], f = 1:nb))
+      unique.breaks <- function(b, offset = 1) {
+         while(any(diff(b) == 0)) {
+            b[which(diff(b) == 0) + 1] <- b[diff(b) == 0] + offset
+         }
+         b
+      }
+      breaks.vect <- unique.breaks(b = as.numeric(breaks.vect), offset = 1)
       fact.r.i    <- cut(seqz.tab[[i]]$position, breaks.vect)
       fact.b.i    <- cut(seqz.b.i$position, breaks.vect)
       seg.i.s.r   <- sapply(X = split(seqz.tab[[i]]$chromosome, f = fact.r.i), FUN = length)
       seg.i.s.b   <- sapply(X = split(seqz.b.i$chromosome, f = fact.b.i), FUN = length)
-      if (weighted.mean == TRUE){
+     
+      if (weighted.mean){
          seg.i.rw    <- sapply(X = split(seqz.tab[[i]]$rw, f = fact.r.i), FUN = function(a) sum(a, na.rm = TRUE))
          seg.i.w.r   <- sapply(X = split(seqz.tab[[i]]$w.r, f = fact.r.i), FUN = function(a) sum(a, na.rm = TRUE))
+         seg.i.r.sd  <- sapply(X = split(seqz.tab[[i]]$rw/seqz.tab[[i]]$w.r, f = fact.r.i), FUN = function(a) sd(a, na.rm = TRUE))
+         seg.i.b.sd  <- sapply(X = split(seqz.b.i$bw/seqz.b.i$w.b, f = fact.b.i), FUN = function(a) sd(a, na.rm = TRUE))         
          seg.i.bw    <- sapply(X = split(seqz.b.i$bw, f = fact.b.i), FUN = function(a) sum(a, na.rm = TRUE))
          seg.i.w.b   <- sapply(X = split(seqz.b.i$w.b, f = fact.b.i), FUN = function(a) sum(a, na.rm = TRUE))
          segments.i <- data.frame(chromosome  = names(seqz.tab)[i], start.pos = as.numeric(breaks.vect[-length(breaks.vect)]),
-                               end.pos = as.numeric(breaks.vect[-1]), Bf = seg.i.bw/seg.i.w.b, N.BAF = seg.i.s.b,
-                               depth.ratio = seg.i.rw/seg.i.w.r, N.ratio = seg.i.s.r, stringsAsFactors = FALSE)
+                               end.pos = as.numeric(breaks.vect[-1]), Bf = seg.i.bw/seg.i.w.b, N.BAF = seg.i.s.b, sd.BAF = seg.i.b.sd,
+                               depth.ratio = seg.i.rw/seg.i.w.r, N.ratio = seg.i.s.r, sd.ratio = seg.i.r.sd, stringsAsFactors = FALSE)
       } else {
-        seg.i.r   <- sapply(X = split(seqz.tab[[i]]$adjusted.ratio, f = fact.r.i), FUN = mean)
-        seg.i.b   <- sapply(X = split(seqz.b.i$Bf, f = fact.b.i), FUN = mean)
+        seg.i.r    <- sapply(X = split(seqz.tab[[i]]$adjusted.ratio, f = fact.r.i), FUN = function(a) mean(a, na.rm = TRUE))
+        seg.i.b    <- sapply(X = split(seqz.b.i$Bf, f = fact.b.i), FUN = function(a) mean(a, na.rm = TRUE))
+        seg.i.r.sd <- sapply(X = split(seqz.tab[[i]]$adjusted.ratio, f = fact.r.i), FUN = function(a) sd(a, na.rm = TRUE))
+        seg.i.b.sd <- sapply(X = split(seqz.b.i$Bf, f = fact.b.i), FUN = function(a) sd(a, na.rm = TRUE)) 
         segments.i <- data.frame(chromosome  = names(seqz.tab)[i], start.pos = as.numeric(breaks.vect[-length(breaks.vect)]),
-                                 end.pos = as.numeric(breaks.vect[-1]), Bf = seg.i.b, N.BAF = seg.i.s.b,
-                                 depth.ratio = seg.i.r, N.ratio = seg.i.s.r, stringsAsFactors = FALSE)
+                                 end.pos = as.numeric(breaks.vect[-1]), Bf = seg.i.b, N.BAF = seg.i.s.b, sd.BAF = seg.i.b.sd,
+                                 depth.ratio = seg.i.r, N.ratio = seg.i.s.r, sd.ratio = seg.i.r.sd, stringsAsFactors = FALSE)
       }
       segments[[i]] <- segments.i[seq(from = 1, to = nrow(segments.i), by = 2),]
    }
    segments <- do.call(rbind, segments[as.factor(chr.order)])
    row.names(segments) <- 1:nrow(segments)
-   segments
+   len.seg <- (segments$end.pos - segments$start.pos) / 1e6
+   segments[(segments$N.ratio/len.seg) >= 2, ]
+}
+
+alternative.cp.solutions <- function(cp.table) {
+   ci <- get.ci(cp.table)
+   p.alt <- which(diff(sign(diff(ci$values.ploidy$y))) == -2) + 1
+   get.alt <- function(idx.p, cp.table) {
+      idx.c <- which.max(cp.table$lpp[idx.p,])
+      c(cellularity = cp.table$cellularity[idx.c],
+        ploidy = cp.table$ploidy[idx.p],
+        SLPP = cp.table$lpp[idx.p, idx.c])
+   }
+   res <- lapply(p.alt, FUN = function (x) get.alt(x, cp.table))
+   res <- as.data.frame(do.call(rbind, res))
+   if (nrow(res) > 0 ){
+      res[order(res$SLPP, decreasing = TRUE), ]
+   } else {
+      data.frame(cellularity = ci$max.cellularity, 
+                 ploidy = ci$max.ploidy,
+                 SLPP =  cp.table$lpp[which(cp.table$ploidy == ci$max.ploidy),
+                                      which(cp.table$cellularity == ci$max.cellularity)])
+   }
 }

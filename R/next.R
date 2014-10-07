@@ -58,7 +58,7 @@ VarScan2seqz <- function(varscan.somatic, varscan.copynumber = NULL) {
    zygosity.normal <- zygosity.vect[varscan.somatic$normal_gt]
    AB.normal  <- iupac.nucs[varscan.somatic$normal_gt]
    AB.tumor    <- rep('.', length(AB.normal))
-   
+   strand      <- AB.tumor
    depth.normal <- varscan.somatic$normal_reads1 + varscan.somatic$normal_reads2
    depth.tumor <- varscan.somatic$tumor_reads1 + varscan.somatic$tumor_reads1
    depth.ratio  <- depth.tumor/depth.normal
@@ -69,20 +69,24 @@ VarScan2seqz <- function(varscan.somatic, varscan.copynumber = NULL) {
    idx <- zygosity.normal == 'het'
    Bf[idx] <- 1 - Af[idx]
    idx <- zygosity.normal == 'hom' & varscan.somatic$somatic_status == 'Somatic'
-   mut <- cbind(as.character(iupac.nucs[varscan.somatic$tumor_gt[idx]]),
-                as.character(varscan.somatic$normal_gt[idx]))
-   mut <- sapply(X = 1:sum(idx),
-                 FUN = function(x) gsub(x = mut[x, 1],
-                                        pattern = mut[x, 2],
+   if (sum(idx) > 0) {
+      mut.b <- cbind(as.character(iupac.nucs[varscan.somatic$tumor_gt[idx]]),
+                     as.character(varscan.somatic$normal_gt[idx]))
+      mut.b <- sapply(X = 1:sum(idx),
+                      FUN = function(x) gsub(x = mut.b[x, 1],
+                                        pattern = mut.b[x, 2],
                                         replacement = ''))
-   mut <- paste0(mut, varscan.somatic$tumor_var_freq[idx])
-   AB.tumor[idx] <- mut
+      mut   <- paste0(mut.b, varscan.somatic$tumor_var_freq[idx])
+      strand[idx]   <- paste0(mut.b,
+                              varscan.somatic$tumor_reads2_plus[idx]/(varscan.somatic$tumor_reads2_plus[idx]+varscan.somatic$tumor_reads2_minus[idx]))
+      AB.tumor[idx] <- mut
+   }
    res <- data.frame(chromosome = as.character(varscan.somatic$chrom), position = varscan.somatic$position,
                      base.ref = as.character(varscan.somatic$ref), depth.normal = depth.normal,
                      depth.tumor = depth.tumor, depth.ratio = depth.ratio,
                      Af = round(Af, 3), Bf = round(Bf, 3), zygosity.normal = zygosity.normal, GC.percent = 50,
                      good.reads = round(depth.tumor, 2), AB.normal = AB.normal,
-                     AB.tumor = AB.tumor, stringsAsFactors = FALSE)
+                     AB.tumor = AB.tumor, tumor.strand = strand, stringsAsFactors = FALSE)
    normal.pos <- res$zygosity.normal == 'hom' & res$AB.tumor == '.'
    res <- res[res$depth.ratio > 0 & !is.infinite(res$depth.ratio) & !normal.pos, ]
    if (!is.null(varscan.copynumber)){
@@ -99,7 +103,7 @@ VarScan2seqz <- function(varscan.somatic, varscan.copynumber = NULL) {
                           Af = 1, Bf = 0, zygosity.normal = 'hom',
                           GC.percent = c(varscan.copynumber$gc_content, varscan.copynumber$gc_content)[smart.id],
                           stringsAsFactors = FALSE)
-      mat.t <- cbind(mat.t, good.reads = mat.t$depth.tumor, AB.normal = 'N', AB.tumor = '.')
+      mat.t <- cbind(mat.t, good.reads = mat.t$depth.tumor, AB.normal = 'N', AB.tumor = '.', tumor.strand = '.')
       chrom.order <- unique(mat.t$chromosome)
       l.cnv <- split(mat.t, mat.t$chromosome)
       l.snp <- split(res, res$chromosome)     

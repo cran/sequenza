@@ -1,12 +1,13 @@
 %\VignetteIndexEntry{Sequenza user guide}
 %\VignetteDepends{sequenza}
 %\VignetteKeywords{LOH}
-%\VignetteKeywords{Heterogenity}
+%\VignetteKeywords{Copy number}
 %\VignetteKeywords{Cancer sequencing}
 %\VignettePackage{sequenza}
 
 \documentclass[10pt,a4paper]{article}
-\usepackage{a4wide}
+%\usepackage{a4wide}
+\usepackage{geometry}
 \usepackage{hyperref}
 \usepackage{subfigure}
 \usepackage{listings}
@@ -77,7 +78,7 @@ You may wish to copy this program to a location on your path.
 A typical workflow developed with Sequenza on pre-aligned sequencing files (BAM format) is structured as follows:
 \begin{enumerate}
 \item Convert pileup to \textit{seqz} format 
-\item GC normalization
+\item Normalization of depth ratio
 \item Allele-specific segmentation using the depth ratio and the B allele frequencies (BAFs)
 \item Infer cellularity and ploidy by model fitting
 \item Call CNV and variant alleles
@@ -94,7 +95,7 @@ In order to obtain precise mutational and aberration patterns in a tumor sample,
 \item A FASTA reference genomic sequence file (to extract GC-content information, and to transform BAM to pileup if needed.)
 \end{enumerate}
 
-Alternatively, it is possible to use the output of VarScan2\cite{Koboldt2012} (\url{http://varscan.sourceforge.net}), which would require a similar approach and the generation of pileups as well. In this case, you can skip ahead to the "Converting VarScan2 output to seqz" section below.
+Alternatively, it is possible to use the output of VarScan2\cite{Koboldt2012} (\url{http://varscan.sourceforge.net}), which requires a similar approach and the generation of pileups as well. In this case, you can skip ahead to the ``Converting VarScan2 output to seqz'' section below.
 
 The genome sequence file can be obtained from e.g. \url{http://hgdownload.cse.ucsc.edu/downloads.html} or \url{http://www.ensembl.org/info/data/ftp/index.html}.
 
@@ -131,30 +132,27 @@ A \textit{seqz} file contains genotype information, alleles and mutation frequen
 The seqz file is generated like this:
 \begin{lstlisting}[style=BashInputStyle]
    sequenza-utils.py pileup2seqz -gc hg19.gc50Base.txt.gz \
-                                   -r normal.pileup.gz \
-                                   -s tumor.pileup.gz | gzip > out.seqz.gz
+                                   -n normal.pileup.gz \
+                                   -t tumor.pileup.gz | gzip > out.seqz.gz
 \end{lstlisting}
 
-Alternatively, if you haven't already generated the pileup files, and you are not interested in storing the pileup for further use, you may want to create two named pipes (\textit{FIFOs}) directing \texttt{samtools} output directly into \texttt{sequenza-utils.py}:
+Alternatively, if you haven't already generated the pileup files, and you are not interested in storing the pileup for further use, you can use the function \texttt{bam2seqz} which generates two temporary named pipes (\textit{FIFOs}) converting on the fly to pileup using \texttt{samtools} without storing the pileup file:
 \begin{lstlisting}[style=BashInputStyle]
-   mkfifo normal.fifo tumor.fifo
-   samtools mpileup -f hg19.fasta -Q 20 normal.bam > normal.fifo &
-   samtools mpileup -f hg19.fasta -Q 20 tumor.bam > tumor.fifo &
-   sequenza-utils.py pileup2seqz -gc hg19.gc50Base.txt.gz \
-                                   -r normal.fifo \
-                                   -s tumor.fifo | gzip > out.seqz.gz
-   rm normal.fifo tumor.fifo
+   sequenza-utils.py bam2seqz -gc hg19.gc50Base.txt.gz 
+                              --fasta hg19.fasta \
+                              -n normal.fifo \
+                              -t tumor.fifo | gzip > out.seqz.gz
 \end{lstlisting}
 
-To further compress the seqz file, it is possible to use a binning function provided in \texttt{sequenza-utils.py}.
+To reduce the size of the seqz file, we recommend the use of a binning function provided in \texttt{sequenza-utils.py}.
 This binning decreases the memory requirement to load the data into R, and it also speeds up the processing of the sample:
 
 \begin{lstlisting}[style=BashInputStyle]
    sequenza-utils.py seqz-binning -w  50 \
-                                   out.seqz.gz | gzip > out_small.seqz.gz
+                                  -s out.seqz.gz | gzip > out_small.seqz.gz
 \end{lstlisting}
 
-Where the parameter \textit{-w} indicate a window size (in bases), to be used for the binning. The heterozygous positions and the positions carrying variant calls remain untouched. 
+Where the parameter \textit{-w} indicate a window size (in bases), to be used for the binning. This binning has only a negligible effect on Sequenza output. The heterozygous positions and the positions carrying variant calls are not affected by binning. 
 
 \subsection{Converting VarScan2 output to seqz}
 
@@ -169,9 +167,9 @@ seqz.data <- VarScan2seqz(varscan.somatic = snp, varscan.copynumber = cnv)
 write.table(seqz.data, "my.sample.seqz", col.names = TRUE, row.names = FALSE, sep = "\t")
 @
 
-For \textit{whole genome} sequencing, the information in the \textit{varscan.snp} could be enough to estimate the ploidy and cellularity, and define the copy number and mutations; hence the \texttt{varscan.copynumber} argument is optional. For \textit{exome} sequencing, it is strongly suggested to supply \texttt{varscan.copynumber}.
+For \textit{whole genome} sequencing, the information in the \textit{varscan.snp} could be sufficient to estimate the ploidy and cellularity, and define the copy number profile and mutations; hence the \texttt{varscan.copynumber} argument is optional. However, for \textit{exome} sequencing, we recommend that you supply \texttt{varscan.copynumber}.
 
-\section{Exploring the \textit{seqz} file and GC-correction details}
+\section{Exploring the \textit{seqz} file and depth ratio normalization details}
 
 After the aligned sequence data have been pre-processed, the \texttt{sequenza} R package handles all the normalization and analysis steps. Thus, the remainder of this vignette will take place in R.
 
@@ -211,11 +209,11 @@ The files can be read even faster; after mapping the chromosomes location in the
 
 Each aligned base, in the next generation sequencing, is associated with a quality score. The \texttt{sequenza-utils.py} software is capable of filtering out bases with a quality score lower then a specified value (default, 20). The number of reads that have passed the filter is returned in the column \textit{good.reads}, while the \textit{depth.tumor} column contains the raw depth indicated in the pileup.
 
-\subsection{GC-normalization}
+\subsection{Normalization of depth ratio}
 
 The GC content bias affects most of the samples; however, some samples are more biased than others. We attempt to remove this bias by normalizing with the mean depth ratio value of a corresponding GC content value.
 
-It is possible to gather GC-content information from the entire file and in the meantime map the chromosome position in the file (to fast access chromosome by chromosome later, see \texttt{?read.seqz}):
+For efficiency, the function \texttt{gc.sample.stats} simultaneously gathers GC-content information from the entire file and in the meantime maps the chromosome position in the file (thus enabling direct access to a specified chromosome later, see \texttt{?read.seqz}):
 
 <<label=depthRGCnormall, echo=TRUE, results=hide>>=
 gc.stats <- gc.sample.stats(data.file)
@@ -231,7 +229,7 @@ gc.stats <- gc.norm(x = seqz.data$depth.ratio,
                     gc = seqz.data$GC.percent)
 @
 
-In either case the the normalization to the depth.ratio is performed in the following way:
+In either case the the normalization of the depth ratio is performed in the following way:
 <<label=useGCmedians, echo=TRUE>>=
 gc.vect  <- setNames(gc.stats$raw.mean, gc.stats$gc.values)
 
@@ -262,7 +260,7 @@ The R package \texttt{sequenza} offers an ensemble of functions and models that 
 \begin{itemize}
 \item Extract the relevant information from the raw \textit{seqz} file.
 \item Fit the \textit{sequenza} model to infer cellularity and ploidy.
-\item Apply the estimated parameters to detect CNV variant alleles
+\item Apply the inferred parameters to estimate the copy number profile
 \end{itemize}
 
 \subsection{Extract the information from the \textit{seqz} file.}
@@ -279,7 +277,7 @@ names(test)
 @
 After the raw data is processed, the size of the data is considerably reduced. Typically, the R object resulting from \texttt{sequenza.extract} can be stored as a file of a few megabytes, even for whole genome sequencing data. 
 
-The result of this first step consists of a list of lists. All the sub-lists have a different information subdivided by chromosome. Every list share the same chromosome order.
+The result of this first step consists of a list of sub-lists. Each sub-list has information subdivided by chromosome. All lists share the same chromosome order.
 
 \subsubsection{Plot chromosome view with mutations, BAF, depth ratio and segments}
 
@@ -293,14 +291,14 @@ chromosome.view(mut.tab = test$mutations[[1]], baf.windows = test$BAF[[1]],
                 ratio.windows = test$ratio[[1]], min.N.ratio = 1,
                 segments = test$segments[[1]], main = test$chromosomes[1])
 @ 
-      \caption{Plots of mutant allele frequency (top), B-allele frequency (middle) and depth ratio (bottom) for chromosome position.}
+      \caption{Plots of mutant allele frequency (top), B allele frequency (middle) and depth ratio (bottom) vs. chromosome position.}
       \label{fig:3panelsPlot}
 \end{figure}
 
 
 \subsection{Inference of cellularity and ploidy}
 
-After the raw data is conveniently processed, we can apply the Bayesian inference implemented in the package.
+After the raw data is processed, imported into R, and normalized, we can apply the parameter inference implemented in the package.
 The function \texttt{sequenza.fit} performs the inference using the calculated B allele frequency and depth ratio of the obtained segments. The method can be explored in more detail by reading the manual pages for the function \texttt{baf.model.fit}.
 
 <<label=sequenzaFit, echo=TRUE, eval=FALSE, results=hide>>=
@@ -311,7 +309,7 @@ CP.example <- sequenza.fit(test)
 data(CP.example)
 @
 
-The result is a list in a format \textit{list(ploidy, collularity, loglik)}, corresponding to the conventional format \textit{list(x, y, z)}, easily usable by standard graphical functions, such as \texttt{image}. However we provide functions to explore and better display the results, and to extract the point estimate and confidence intervals.
+The result is a list in a format \textit{list(ploidy, collularity, lpp)}, corresponding to the conventional format \textit{list(x, y, z)}, easily usable by standard graphical functions, such as \texttt{image}. However we provide functions to explore and better display the results, and to extract the point estimate and confidence intervals.
 
 \subsection{Results of model fitting}
 
@@ -322,17 +320,17 @@ sequenza.results(sequenza.extract = test, cp.table = CP.example,
                  sample.id = "Test", out.dir="TEST")
 @
 
-Although this standard way of presenting the result would be appropriate for most situations, it is possible to create an alternative wrapper by using functions in the following sub-sections.
+Although this standard way of presenting the result is appropriate for most situations, it is possible to create an alternative wrapper by using functions in the following sub-sections.
 
 \subsubsection{Confidence intervals, confidence region and point estimate}
 
-The object resulting from \texttt{sequenza.fit} has two vectors, \textit{ploidy} and \textit{cellularity}, indicating respectively the tested values of ploidy and cellularity, and a matrix, \textit{loglik}, with columns and rows corresponding to the previously indicated vectors, containing the estimated log-likelihood for the combinations of cellularity and ploidy.
+The object resulting from \texttt{sequenza.fit} has two vectors, \textit{ploidy} and \textit{cellularity}, indicating respectively the tested values of ploidy and cellularity, and a matrix, \textit{lpp}, with columns and rows corresponding to the previously indicated vectors, containing the estimated log posterior probability for the combinations of cellularity and ploidy.
 Confidence intervals for these two parameters can be calculated using the function \texttt{get.ci}.
 <<label=ConfIntCP, echo=TRUE>>=
 cint <- get.ci(CP.example)
 @
 
-It is also possible to plot the likelihood over the combinations of the two parameters, highlighting the point estimate and the confidence region.
+It is also possible to plot the posterior probability over the combinations of the two parameters, highlighting the point estimate and the confidence region.
 
 \begin{figure}[H]
       \centering
@@ -340,11 +338,11 @@ It is also possible to plot the likelihood over the combinations of the two para
 cp.plot(CP.example)
 cp.plot.contours(CP.example, add = TRUE, likThresh = c(0.95))
 @ 
- \caption{Result from the Bayesian inference over the defined range of cellularity and ploidy. Color intensity indicates the log-likelihood of corresponding cellularity/ploidy values.}
+ \caption{Result from the inference over the defined range of cellularity and ploidy. Color intensity indicates the log posterior probability of corresponding cellularity/ploidy values.}
       \label{fig:cpPlot}
 \end{figure}
 
-By exploring the results for \textit{cellularity} and \textit{ploidy} separately, it is possible to draw the likelihood distribution for each parameter. The information is returned by the \texttt{get.ci} function.
+By exploring the results for \textit{cellularity} and \textit{ploidy} separately, it is possible to draw the posterior probability distribution for each parameter. The information is returned by the \texttt{get.ci} function.
 \begin{figure}[H]
       \centering
 <<label=CPplotCI,fig=TRUE,width=6,height=6>>=
@@ -352,7 +350,7 @@ par(mfrow = c(2,2))
 cp.plot(CP.example)
 cp.plot.contours(CP.example, add = TRUE)
 plot(cint$values.cellularity, ylab = "Cellularity",
-     xlab = "likelihood", type = "n")
+     xlab = "posterior probability", type = "n")
 select <- cint$confint.cellularity[1] <= cint$values.cellularity[,2] &
           cint$values.cellularity[,2] <= cint$confint.cellularity[2]
 polygon(y = c(cint$confint.cellularity[1], cint$values.cellularity[select, 2], cint$confint.cellularity[2]), 
@@ -361,7 +359,7 @@ lines(cint$values.cellularity)
 abline(h = cint$max.cellularity, lty = 2, lwd = 0.5)  
 
 plot(cint$values.ploidy, xlab = "Ploidy",
-     ylab = "likelihood", type = "n")
+     ylab = "posterior probability", type = "n")
 select <- cint$confint.ploidy[1] <= cint$values.ploidy[,1] &
           cint$values.ploidy[,1] <= cint$confint.ploidy[2]
 polygon(x = c(cint$confint.ploidy[1], cint$values.ploidy[select, 1], cint$confint.ploidy[2]), 
@@ -370,13 +368,13 @@ lines(cint$values.ploidy)
 abline(v = cint$max.ploidy, lty = 2, lwd = 0.5)
 
 @ 
-      \caption{Plot of the log-likelihood with respective cellularity and ploidy probability distribution and confidence intervals.}
+      \caption{Plot of the log posterior probability with respective cellularity and ploidy probability distribution and confidence intervals.}
       \label{fig:cpPlotCI}
 \end{figure}
 
 \subsection{Call CNVs and mutations using the estimated parameters}
 
-The point estimate value corresponds to the point of maximum likelihood, detected after the confidence interval computation: 
+The point estimate value corresponds to the point of maximum posterior probability, detected after the confidence interval computation: 
 <<label=seParam, eval=TRUE>>=
 cellularity <- cint$max.cellularity
 cellularity
@@ -405,11 +403,11 @@ head(cbind(mut.tab[,c("chromosome","position","F","adjusted.ratio", "mutation")]
            mut.alleles))
 @
 
-The result consists of four values for every imputed mutation: \textit{CNn} is the provided copy number of the normal sample at the given position (default = 2); \textit{CNt} is the estimated copy number of the tumor at the given position; \textit{Mt} is the estimated numbers of alleles carrying the mutation; \textit{L} is the log-likelihood of the model fit.
+The result consists of four values for every imputed mutation: \textit{CNn} is the provided copy number of the normal sample at the given position (default = 2); \textit{CNt} is the estimated copy number of the tumor at the given position; \textit{Mt} is the estimated numbers of alleles carrying the mutation; \textit{LPP} is the log posterior probability of the model fit.
 
 \subsubsection{Detect copy number variations}
 
-To detect copy number variations we use a B allele frequency model, implemented in the function \texttt{baf.bayes}, with the estimated parameters of \textit{cellularity} and \textit{ploidy}:
+To detect copy number variations we use the model implemented in the function \texttt{baf.bayes}, with the estimated parameters of \textit{cellularity} and \textit{ploidy}:
 <<label=bafBayes, eval=TRUE>>=
 seg.tab     <- na.exclude(do.call(rbind, test$segments))
 cn.alleles <- baf.bayes(Bf = seg.tab$Bf, depth.ratio = seg.tab$depth.ratio,
@@ -419,11 +417,11 @@ head(cn.alleles)
 seg.tab <- cbind(seg.tab, cn.alleles)
 head(seg.tab)
 @
-The result consists of four values for every imputed segment: \textit{CNt} is the estimated copy number of the tumor of the given segment; \textit{A} is the estimated number of A alleles; \textit{B} is the estimated number of B alleles; \textit{L} is the log-likelihood of the model fit.
+The result consists of four values for every imputed segment: \textit{CNt} is the estimated copy number of the tumor of the given segment; \textit{A} is the estimated number of A alleles; \textit{B} is the estimated number of B alleles; \textit{LPP} is the log posterior probability of the model fit.
 
 \subsection{Visualize detected copy number changes and variant alleles}
 
-To visualize the data after detection of CNV and variant alleles, it is possible to use the \texttt{chromosome.view}. In order to draw the relative model points (and to evaluate how the estimated model fits the real data) more information is needed compared to Figure \ref{fig:3panelsPlot}:
+To visualize the data after detection of CNV and variant alleles, one can use the \texttt{chromosome.view}. In order to draw the relative model points (and to evaluate how the estimated model fits the real data) additional information is needed beyond that in Figure \ref{fig:3panelsPlot}:
 \begin{itemize}
 \item Each segment must have the columns relative to the copy number variation calling. 
 \item \textit{Cellularity} and \textit{ploidy} estimates.
@@ -439,7 +437,7 @@ chromosome.view(mut.tab = test$mutations[[3]], baf.windows = test$BAF[[3]],
                 cellularity = cellularity, ploidy = ploidy,
                 avg.depth.ratio = avg.depth.ratio)
 @ 
-      \caption{Plots of mutant allele frequency (top), B-allele frequency (middle) and depth ratio (bottom) for chromosome position. Horizontal dotted lines indicate expectation values for various copy number/allele states.}
+      \caption{Plots of mutant allele frequency (top), B allele frequency (middle) and depth ratio (bottom) for chromosome position. Horizontal dotted lines indicate expectation values for various copy number/allele states.}
       \label{fig:crhomViewWithCP}
 \end{figure}
 

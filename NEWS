@@ -1,9 +1,21 @@
+Changes in version 2.1.0 (2014-10-08)
+ - Add sequenza-utils.py function bam2seqz
+ - Add raw data depth-ratio/Bf in the genome view plots
+ - Results model fitting plot using the B-allele/depth-ratio plot.
+ - Present alternative solutions using local maxima of the CP plot.
+ - Model the expected B-allele frequencies with a t-distribution using the observed sd, rather then taking the 95% of the observed Bf.
+ - Use dt instead of dbinom for the BAF and depth ratio model.
+ - Fix documentation discrepancies on the sequenza-utils.py execution.
+ - Add breaks as optional argument - enables to input custom segmentation - 
+ - Add different segmentation options, fast, het and full, corresponding to different resolutions.
+ - Minor fixes.
+
 Changes in version 2.0.0 (2014-04-08)
  - Change seqz names header and some function arguments/formats to improve usability
  - Add to sequenza.fit a method argument to calculate cellularity and ploidy also from mutations
  - Change the recommended file extension from ".abfreq" to ".seqz" for clarity.
  - The "seqz" file now contains a column with strand orientation information.
- - "cp.plot" now plots the scaled log-likelood.
+ - "cp.plot" now plots the scaled log-likelihood.
  - "theoretical.depth.ratio" now implements the correct formula.
  - The "theoretical.*" functions have their arguments rearranged, and defaults changed, for consistency.
  - "sequenza.extract" now has additional filtering arguments.

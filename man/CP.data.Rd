@@ -1,6 +1,5 @@
 \name{CP.example}
 \docType{data}
-\alias{CPsnp.example}
 \alias{CP.example}
 
 \title{Example of cellularity and ploidy results}
@@ -11,7 +10,6 @@
 
 \usage{
   data(CP.example)
-  data(CPsnp.example)
 }
 
 \format{
@@ -19,7 +17,7 @@
  \describe{ 
    \item{ploidy}{numeric vector of tested ploidy values.}
    \item{cellularity}{numeric vector of tested cellularity values.}
-   \item{loglik}{numeric matrix of log-likelihoods for each \var{(ploidy, cellularity)} pair.}
+   \item{lpp}{numeric matrix of log-posterior probability for each \var{(ploidy, cellularity)} pair.}
   }
 }
 
@@ -27,13 +25,10 @@
   data(CP.example)
   str(CP.example)
 
-  data(CPsnp.example)
-  str(CPsnp.example)
-
   ## Visualization of the object
   image(x = CP.example$ploidy,
         y = CP.example$cellularity,
-        z = CP.example$loglik)
+        z = CP.example$lpp)
 
   ## A better plot
   cp.plot(CP.example)

@@ -4,7 +4,7 @@
 \title{Model fitting using Bayesian inference}
 
 \description{
-  Computes the log-likelihood distribution for the specified range of cellularity and ploidy parameters
+  Computes the log-posterior probability distribution for the specified range of cellularity and ploidy parameters
 }
 
 \usage{
@@ -27,11 +27,11 @@
   A list of three items:
   \item{ploidy}{tested values of the ploidy parameter}
   \item{cellularity}{tested values of the cellularity parameter}
-  \item{loglik}{log-likelihood of each pair of cellularity/ploidy parameters.}
+  \item{lpp}{log-posterior probability of each pair of cellularity/ploidy parameters.}
 }
 
 \details{
-  \code{baf.model.fit} uses the function \code{\link{baf.bayes}} to infer the log-likelihood of the model fit using the possible combinations of cellularity and ploidy values provided in the arguments.
+  \code{baf.model.fit} uses the function \code{\link{baf.bayes}} to infer the log-posterior probability of the model fit using the possible combinations of cellularity and ploidy values provided in the arguments.
   Similarly \code{mufreq.model.fit} fits the mutation/depth ratio model using the function \code{\link{mufreq.bayes}}.
   \code{baf.model.fit} is generally used to infer cellularity and ploidy on segmented chromosomes, while \code{mufreq.model.fit} can also be used to estimate these parameters from mutations, and in addition can be useful to give a rough estimate of sub-clonal fractions. Be aware  that the mutation frequency is more sensitive to sampling bias, and is generally more noisy compared to the segmented B-allele frequency.
 }

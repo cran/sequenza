@@ -1,31 +1,42 @@
-cp.plot <- function (cp.table,  
-                     xlab = "Ploidy", ylab = "Cellularity", zlab = "Scaled rank likelihood", 
+cp.plot <- function (cp.table, xlab = "Ploidy", ylab = "Cellularity", zlab = "Scaled rank LPP", 
                      colFn = colorRampPalette(c('white', 'lightblue')), ...) {
-  z <- matrix(rank(cp.table$loglik), nrow = nrow(cp.table$loglik)) / length(cp.table$loglik)
+  z <- matrix(rank(cp.table$lpp), nrow = nrow(cp.table$lpp)) / length(cp.table$lpp)
   map <- makecmap(c(0, 1), colFn = colFn, include.lowest = TRUE)
   colorgram(x = cp.table$ploidy, y = cp.table$cellularity, z = z, 
             map = map, las = 1, 
             xlab = xlab, ylab = ylab, zlab = zlab, ...)
 }
 
-cp.plot.contours <- function(cp.table, likThresh = c(0.95),
-                             col = palette(), legend.pos = 'bottomright', pch = 18, ...) {
-   znormsort <- sort(cp.table$loglik, decreasing = TRUE)
+cp.plot.contours <- function(cp.table, likThresh = c(0.95), alternative = TRUE,
+                             col = palette(), legend.pos = 'bottomright', pch = 18, alt.pch = 3, ...) {
+   znormsort <- sort(cp.table$lpp, decreasing = TRUE)
    znormcumLik <- cumsum(znormsort)
    n <- sapply(likThresh, function(x) sum(znormcumLik < x) + 1)
    LikThresh <- znormsort[n]
    names(LikThresh) <- paste0(likThresh * 100, '%')
-
-   contour(x = cp.table$ploidy, y = cp.table$cellularity, z = cp.table$loglik,
+   contour(x = cp.table$ploidy, y = cp.table$cellularity, z = cp.table$lpp,
            levels = znormsort[n], col = col, drawlabels = FALSE,
            xlab = "Ploidy", ylab = "Cellularity", ...)
-   max.xy <- which(cp.table$loglik == max(cp.table$loglik), arr.ind = TRUE)
+   max.xy <- which(cp.table$lpp == max(cp.table$lpp), arr.ind = TRUE)
    points(x = cp.table$ploidy[max.xy[, "row"]],
           y = cp.table$cellularity[max.xy[, "col"]], pch = pch)
+   if (alternative == TRUE){
+      alt.sol <- alternative.cp.solutions(cp.table)
+      alt.sol <- alt.sol[-1, ]
+      points(x = alt.sol$ploidy,
+             y = alt.sol$cellularity, pch = alt.pch)
+   }
    if(!is.na(legend.pos)) {
-      legend(legend.pos, legend = c(paste("C.R.", names(LikThresh), sep = " "), "Point estimate"),
-             col = c(col[1:length(LikThresh)], "black"), lty = c(rep(1, length(LikThresh)), NA),
-             pch = c(rep(NA, length(LikThresh)), pch), border = NA, bty = "n")
+      if (alternative == FALSE) {
+         legend(legend.pos, legend = c(paste("C.R.", names(LikThresh), sep = " "), "Point estimate"),
+                col = c(col[1:length(LikThresh)], "black"), lty = c(rep(1, length(LikThresh)), NA),
+                pch = c(rep(NA, length(LikThresh)), pch), border = NA, bty = "n")
+      } else {
+         legend(legend.pos, legend = c(paste("C.R.", names(LikThresh), sep = " "),
+                                       "Point estimate", "Alternative solutions"),
+                col = c(col[1:length(LikThresh)], "black", "black"), lty = c(rep(1, length(LikThresh)), NA, NA),
+                pch = c(rep(NA, length(LikThresh)), pch, alt.pch), border = NA, bty = "n")         
+      }
    }
    invisible(LikThresh)
 }
@@ -92,7 +103,7 @@ plotWindows <- function(seqz.window, m.lty = 1, m.lwd = 3,
 }
 
 chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments = NULL,  min.N.baf = 1, min.N.ratio = 1e4,
-                            main = "", vlines = FALSE, legend.inset = c(-20 * strwidth("a", units = 'figure'), 0), BAF.style = "none",
+                            main = "", vlines = FALSE, legend.inset = c(-20 * strwidth("a", units = 'figure'), 0), BAF.style = "lines",
                             CNn = 2, cellularity = NULL, ploidy = NULL, avg.depth.ratio = NULL, model.lwd = 1,
                             model.lty = "24", model.col = 1, x.chr.space = 10) {
    make.polygons <- function(segments, model.baf) {
@@ -139,9 +150,9 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
             data.model     <- list()
             CNt.max        <- max(segments$CNt, na.rm = TRUE) + 1
             CNt.min        <- 0
-            data.model$baf <- theoretical.baf(CNn = CNn, CNt = CNt.max, cellularity = cellularity)
+            data.model$baf <- expected.baf(sd = mean(segments$sd.BAF, na.rm = TRUE), CNn = CNn, CNt = CNt.max, cellularity = cellularity)
             if (CNn == 2) {
-               data.model$baf <- rbind(c(0,0,0.5,0), data.model$baf)
+               data.model$baf <- rbind(c(0,0,max(data.model$baf$BAF),0), data.model$baf)
             } else {
                data.model$baf <- rbind(c(0,0,1,0), data.model$baf)
             }       
@@ -185,8 +196,8 @@ chromosome.view <- function(baf.windows, ratio.windows, mut.tab = NULL, segments
       labels <- sapply(unique.colors, function(a) paste(names(mutation.colors)[mutation.colors == a], collapse = ", "))
       #legend("topleft", legend = labels, fill = unique.colors, border = NA, bty = "n")
       legend(y = "center", x  = "right", legend = labels,
-             inset = legend.inset,
-             fill = unique.colors, border = NA, bty = "n")
+             inset = legend.inset, pch = 19, col = unique.colors,
+             pt.bg = unique.colors, border = NA, bty = "n")
       if (!is.null(segments)){
          if (vlines) {
             abline(v = segments$end.pos, lwd = 1, lty = 2)
@@ -290,6 +301,7 @@ genome.view <- function(seg.cn, info.type = "AB", ...) {
    abs.list     <- mapply(cbind, seg.list, seg.pos, SIMPLIFY = FALSE)
    abs.segments <- do.call(rbind, abs.list)
    if (info.type == "AB") {
+      abs.segments <- na.exclude(abs.segments)
       plot(x = c(min(abs.segments$abs.start), max(abs.segments$abs.end)),
            y = c(-0.1, (max(abs.segments$A)+0.1)), type = "n",
            ylab = "Copy number", xlab = "Position (Mb)",
@@ -303,6 +315,7 @@ genome.view <- function(seg.cn, info.type = "AB", ...) {
       segments(x0 = abs.segments$abs.start, x1 = abs.segments$abs.end,
                y0 = (abs.segments$A+0.1), y1 = (abs.segments$A+0.1), col="red", lwd = 5, lend = 1)
    } else {
+      abs.segments <- abs.segments[!is.na(abs.segments$CNt), ]
       plot(x = c(min(abs.segments$abs.start), max(abs.segments$abs.end)),
            y = c(min(abs.segments$CNt), max(abs.segments$CNt)), type = "n",
            ylab = "Copy number", xlab = "Position (Mb)",
@@ -326,4 +339,95 @@ genome.view <- function(seg.cn, info.type = "AB", ...) {
    axis(labels = as.character(round(seq(abs.list[[1]]$start.pos[1]/1e6, abs.list[[1]]$end.pos[nrow(abs.list[[1]])]/1e6, by = 50), 0)),
         at = seq(abs.list[[1]]$abs.start[1], abs.list[[1]]$abs.end[nrow(abs.list[[1]])], by = 5e7), outer = FALSE, cex = par("cex.axis")*par("cex"),
         side = 1 , line = 1)
+}
+
+baf.ratio.model.fit <- function(cellularity, ploidy, segs, BAF.space = seq(0.001, 0.5, 0.005),
+                                ratio.space = seq(0.01, 2.5, 0.05), avg.depth.ratio = 1, CNt.max = 7,
+                                segment.filter = 3e6) {
+   s.b   <- mean(segs$sd.BAF, na.rm = TRUE)
+   s.r   <- mean(segs$sd.ratio, na.rm = TRUE)
+   l.s   <- segs$end.pos - segs$start.pos
+   s.big <- l.s >= segment.filter
+   test.values <- expand.grid(Bf = BAF.space, ratio = ratio.space,
+                              KEEP.OUT.ATTRS = FALSE)
+   both.space  <- baf.bayes(Bf = test.values$Bf, CNt.max = CNt.max, CNt.min = 0,
+                           depth.ratio = test.values$ratio,
+                           cellularity = cellularity, ploidy = ploidy,
+                           avg.depth.ratio = avg.depth.ratio,
+                           sd.Bf = s.b, weight.Bf = 10,
+                           sd.ratio = s.r, weight.ratio = 10, ratio.priority = F,
+                           CNn = 2) 
+   both.space <- as.data.frame(both.space)
+   z <- tapply(both.space$LPP, list(test.values$Bf, test.values$ratio), mean)
+   x <- as.numeric(rownames(z))
+   y <- as.numeric(colnames(z))
+   t <- types.matrix(CNt.min = 0, CNt.max = CNt.max, CNn = 2)
+   mpts <- cbind(t,
+                 model.points(cellularity = cellularity,
+                              ploidy = ploidy, types = t,
+                              avg.depth.ratio = avg.depth.ratio)
+   )
+   mpts <- unique(mpts[, c("CNt", "depth.ratio")])
+   par(mar = c(5.1, 4.1, 4.1, 4.1))
+   rev.heat <- function(...){rev(heat.colors(...))}
+   suppressWarnings(colorgram(x, y, z, key = NA, nz = 1000, xlab = "B allele frequency", ylab = "Depth ratio",
+             main = paste("cellularity:", cellularity, "ploidy:", ploidy, "sd.BAF:", round(s.b,2), sep = " "),
+             map = makecmap(z, breaks = unique(quantile(z, seq(.25,1,0.0001))), right = TRUE, n = 1000, colFn = rev.heat),
+             outlier = "white", las = 1, xlim = c(0, 0.5)))
+   axis(side = 4, at = mpts$depth.ratio, labels = mpts$CNt, las = 1)
+   mtext(text = "Copy number", side = 4, line = 2)
+   points(x = segs$Bf[s.big], y = segs$depth.ratio[s.big], pch = 1, cex = 1)
+   points(x = segs$Bf[!s.big], y = segs$depth.ratio[!s.big], pch = ".", cex = 1)
+}
+
+plotRawGenome <- function(sequenza.extract, cellularity, ploidy, CNt.max = 7, main = "", ...){
+   max.end <- sapply(sequenza.extract$ratio, FUN = function(x) max(x$end, na.rm = T))
+   max.end <- c(0, cumsum(as.numeric(max.end)))
+   chrs <- names(sequenza.extract$ratio)
+   coords.names <- (max.end + c(diff(max.end)/2,0))[1:length(chrs)]
+   new.coords <- function(win.list, max.end){
+      lapply(1:length(win.list), FUN = function(x) {
+         y <- win.list[[x]]
+         y$start <- y$start + max.end[x]
+         y$end <- y$end + max.end[x]
+         y
+      })}
+   new.coords.segs <- function(segs, max.end){
+      lapply(1:length(segs), FUN = function(x) {
+         y <- segs[[x]]
+         y$start.pos <- y$start.pos + max.end[x]
+         y$end.pos <- y$end.pos + max.end[x]
+         y
+      })}
+   ratio.new <- new.coords(sequenza.extract$ratio,max.end)
+   BAF.new   <- new.coords(sequenza.extract$BAF,max.end)
+   segs.new  <- do.call(rbind, new.coords.segs(sequenza.extract$segments,max.end))
+   avg.depth.ratio <- 1
+   #avg.depth.ratio = mean(sequenza.extract$gc$adj[,2])
+   #avg.depth.ratio <- center.ratio(segs.new)
+   par(mar = c(1, 4, 0, 3), oma = c(5, 0, 4, 0), mfcol = c(2,1), ...)
+   plot(x = c(min(max.end), max(max.end)), y = c(0,0.5), main = main, xlab = NA,
+        ylab = "B allele frequency", type = "n", las = 1, xaxs = "i", yaxs = "i", xaxt = "n" )
+   plotWindows(seqz.window = do.call(rbind, BAF.new), q.bg = "lightblue", m.col = "black", add = T)
+   segments(x0 = segs.new$start.pos, x1 = segs.new$end.pos,
+            y0 = (segs.new$Bf), y1 = (segs.new$Bf), col = "red", lwd = 2, lend = 1)
+   abline(v = max.end, lty = 1)
+   plot(x=c(min(max.end), max(max.end)), y = c(0,2.5), main = "", xlab = NA,
+        ylab = "Depth ratio", type = "n", las = 1, xaxs = "i", yaxs = "i", xaxt = "n")
+   plotWindows(seqz.window = do.call(rbind, ratio.new), q.bg = "lightblue", m.col = "black", add = T)
+   segments(x0 = segs.new$start.pos, x1 = segs.new$end.pos,
+            y0 = (segs.new$depth.ratio), y1 = (segs.new$depth.ratio), col = "red", lwd = 2, lend = 1)
+   if (!missing(ploidy) & !missing(cellularity)){
+      types        <- types.matrix(CNt.min = 0, CNt.max = CNt.max, CNn = 2)
+      depth.ratios <- model.points(cellularity = cellularity, ploidy = ploidy,
+                                   avg.depth.ratio = avg.depth.ratio,
+                                   types = types)[, "depth.ratio"]
+      depth.ratios <- unique(data.frame(CNt = types$CNt, ratio = depth.ratios))
+      abline(h = depth.ratios$ratio, lty = 2)
+      axis(labels = as.character(depth.ratios$CNt), side = 4, line = 0, las = 1,
+           at = depth.ratios$ratio)
+      mtext(text = "Copy number", side = 4, line = 2, cex = par("cex.lab")*par("cex"))
+   }
+   abline(v = max.end, lty = 1)
+   axis(labels = chrs, at = coords.names, side = 1, cex.axis = 1)
 }

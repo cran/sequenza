@@ -63,6 +63,27 @@ theoretical.baf <- function(CNt, CNn = 2, cellularity) {
    as.data.frame(do.call(rbind,res))
 }
 
+expected.baf <- function(sd, ...) {
+   baf      <- theoretical.baf(...)
+   baf.t2 <- function(BAF, sd, by = 0.001){
+      bafs   <- seq(0,1,0.001)
+      b.b    <- dt2(x = bafs, mean = BAF, sd = sd, df = 5)
+      b.a    <- dt2(x = bafs, mean = 1-BAF, sd = sd, df = 5)
+      half.b <- bafs[bafs <= 0.5]
+      b <- (b.b+b.a)[bafs <= 0.5]
+      weighted.mean(half.b,b)
+   }
+   BAF <- mapply(FUN = baf.t2, baf$BAF,
+                 MoreArgs = list(sd = sd))
+   wgh <- dt2(x = baf$BAF, mean = 0.5, sd = sd, df = 5)
+   wgh <- wgh/max(wgh)
+   mean.bf <- function(x) {
+      weighted.mean(x=c(x["BAF"], x["eBAF"]), w = c((1-x["wgh"]), x["wgh"]))
+   }
+   baf$BAF <- apply(cbind(BAF = baf$BAF, eBAF = BAF, wgh = wgh), 1, FUN = mean.bf)
+   baf
+}
+
 baf.model.points <- function (CNt.min, CNt.max, CNn = 2, cellularity,
                               ploidy, avg.depth.ratio) {
    mufreq.depth.ratio <- model.points(cellularity = cellularity, ploidy = ploidy,

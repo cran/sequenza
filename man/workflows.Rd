@@ -10,12 +10,15 @@
 
 \usage{
   sequenza.extract(file, gz = TRUE, window = 1e6, overlap = 1, gamma = 80,
-                   kmin = 10, mufreq.treshold = 0.10, min.reads = 40,
-                   min.reads.normal = 10, min.reads.baf = 1, max.mut.types = 1,
-                   min.type.freq = 0.9, min.fw.freq = 0, verbose = TRUE,
-                   chromosome.list = NULL, weighted.mean = TRUE)
+                   kmin = 10, gamma.pcf = 140, kmin.pcf = 40, mufreq.treshold = 0.10,
+                   min.reads = 40, min.reads.normal = 10, min.reads.baf = 1,
+                   max.mut.types = 1, min.type.freq = 0.9, min.fw.freq = 0,
+                   verbose = TRUE, chromosome.list = NULL, breaks = NULL,
+                   breaks.method = "het", assembly = "hg19", weighted.mean = TRUE,
+                   normalization.method = "mean", gc.stats = NULL)
 
-  sequenza.fit(sequenza.extract, female = TRUE, segment.filter = 1e7,
+  sequenza.fit(sequenza.extract, female = TRUE, N.ratio.filter = 10,
+               N.BAF.filter = 1, segment.filter = 3e6,
                mufreq.treshold = 0.10, XY = c(X = "X", Y = "Y"),
                cellularity = seq(0.1,1,0.01), ploidy = seq(1, 7, 0.1),
                ratio.priority = FALSE, method = "baf",
@@ -34,6 +37,9 @@
   \item{window}{size of windows used when plotting mean and quartile ranges of depth ratios and B-allele frequencies. Smaller windows will take more time to compute.}
   \item{overlap}{integer specifying the number of overlapping windows.}
   \item{gamma, kmin}{arguments passed to \code{\link{aspcf}} from the \pkg{copynumber} package.}
+  \item{gamma.pcf, kmin.pcf}{arguments passed to \code{\link{pcf}} from the \pkg{copynumber} package. The arguments are effective only when \code{breaks.method} is set to "full".}
+  \item{breaks}{Optional data.frame in the format chrom, start.pos, end.pos, defining a pre-existing segmentation. When the argument is set the built-in segmentation will be skipped in favor of the suggested breaks.}
+  \item{breaks.method}{Argument indicating the resolution of the segmentation. Possible values are \code{fast}, \code{het} and \code{full}, where \code{fast} allows the lower resolution and \code{full} the higher. Custom values of \code{gamma} and \code{kmin} need to be adjusted to have optimal results.}
   \item{mufreq.treshold}{mutation frequency threshold.}
   \item{min.reads}{minimum number of reads above the quality threshold to accept the mutation call.}
   \item{min.reads.normal}{minimum number of reads used to determine the genotype in the normal sample.}
@@ -45,25 +51,33 @@
   \item{sequenza.extract}{a list of objects as output from the \code{sequenza.extract} function.}
   \item{cp.table}{a list of objects as output from the \code{sequenza.fit} function.}
   \item{female}{logical, indicating whether the sample is male or female, to properly handle the X and Y chromosomes. Implementation only works for the human normal karyotype.}
-  \item{CNt.max}{maximum copy number to consider in the model.}  
+  \item{CNt.max}{maximum copy number to consider in the model.}
+  \item{N.ratio.filter}{threshold of minimum number of observation of depth ratio in a segment.}
+  \item{N.BAF.filter}{threshold of minimum number of observation of B-allele frequency in a segment.}
   \item{segment.filter}{threshold segment length (in base pairs) to filter out short segments, that can cause noise when fitting the cellularity and ploidy parameters. The threshold will not affect the allele-specific segmentation.}
   \item{XY}{character vector of length 2 specifying the labels used for the X and Y chromosomes.}
   \item{cellularity}{vector of candidate cellularity parameters.}
   \item{ploidy}{vector candidate ploidy parameters.}
   \item{priors.table}{data frame with the columns \code{CN} and \code{value}, containing the copy numbers and the corresponding weights. To every copy number is assigned the value 1 as default, so every values different then 1 will change the corresponding weight.}
   \item{ratio.priority}{logical, if TRUE only the depth ratio will be used to determine the copy number state, while the Bf value will be used to determine the number of B-alleles.}
-  \item{chromosome.list}{Vector containing the index or the names of the chromosome to include in the model fitting.}
+  \item{chromosome.list}{vector containing the index or the names of the chromosome to include in the model fitting.}
   \item{weighted.mean}{boolean to select if the segments should be calculated using the read depth as weights to calculate depth ratio and B-allele frequency means.}
+  \item{normalization.method}{string defining the operation to perform during the GC-normalization process. Possible values are \code{mean} (default) and \code{median}. A \code{median} normalization is preferable with noisy data.}
+  \item{gc.stats}{object returned from the function \code{\link{gc.sample.stats}}. If \code{NULL} the object will be computed from the input file.} 
   \item{verbose}{logical, indicating whether to print information about the chromosome being processed.}
   \item{sample.id}{identifier of the sample, to be used as a prefix for saved objects.}
   \item{out.dir}{output directory where the files and objects will be saved.}
   \item{mc.cores}{number of cores to use; see \code{\link{mclapply}}.}
+  \item{assembly}{assembly version of the genome, see \code{\link{aspcf}} or \code{\link{pcf}}.}
+
 }
 
 \details{
-   The first function, \code{sequenza.extract}, utilizes a range of functions from the sequenza package to read the raw data, normalize the depth.ratio for GC-content bias, perform allele-specific segmentation, filter for noisy mutations and bin the raw data for plotting. The computed objects are returned as a single list object. 
+   The first function, \code{sequenza.extract}, utilizes a range of functions from the sequenza package to read the raw data, normalize the depth.ratio for GC-content bias, perform allele-specific segmentation, filter for noisy mutations and bin the raw data for plotting. The computed objects are returned as a single list object.
    
-   The second function, \code{sequenza.fit}, accepts the output from \code{sequenza.extract} and calls \code{\link{baf.model.fit}} to calculate the log-likelihood for all pairs of the candidate ploidy and cellularity parameters.
+   The segmentation by default is performed using only the heterozygous position and the \code{\link{aspcf}} function from \pkg{copynumber} package. The \code{full} option in the \code{breaks.method} argument allow to combine results of the segmentation of all the data available, using the \code{\link{pcf}} function, and the default \code{\link{aspcf}} using only the heterozygous positions.
+   
+   The second function, \code{sequenza.fit}, accepts the output from \code{sequenza.extract} and calls \code{\link{baf.model.fit}} to calculate the log-posterior probability for all pairs of the candidate ploidy and cellularity parameters.
    
    The third function, \code{sequenza.results}, saves a number of objects in a specified directory (default is the working directory). The objects are:
 \itemize{

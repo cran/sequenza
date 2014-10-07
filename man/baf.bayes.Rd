@@ -4,13 +4,14 @@
 \title{Model allele-specific copy numbers with specified cellularity and ploidy parameters}
 
 \description{
-  Given a pair of cellularity and ploidy parameters, the function returns the most likely allele-specific copy numbers with the corresponding log-likelihood of the fit, for given values of B-allele frequency and depth ratio.
+  Given a pair of cellularity and ploidy parameters, the function returns the most likely allele-specific copy numbers with the corresponding log-posterior probability of the fit, for given values of B-allele frequency and depth ratio.
 }
 
 \usage{
   baf.bayes(Bf, depth.ratio, cellularity, ploidy, avg.depth.ratio,
-            weight.Bf = 100, weight.ratio = 100, CNt.min = 0, CNt.max = 7,
-            CNn = 2, priors.table = data.frame(CN = CNt.min:CNt.max, value = 1),
+            sd.Bf = 0.1, sd.ratio = 0.5, weight.Bf = 1, weight.ratio = 1,
+            CNt.min = 0, CNt.max = 7, CNn = 2,
+            priors.table = data.frame(CN = CNt.min:CNt.max, value = 1),
             ratio.priority = FALSE)
   mufreq.bayes(mufreq, depth.ratio, cellularity, ploidy, avg.depth.ratio,
             weight.mufreq = 100, weight.ratio = 100, CNt.min = 1, CNt.max = 7, CNn = 2,
@@ -21,6 +22,8 @@
   \item{Bf}{vector of B-allele frequencies (values can range from 0 to 0.5).}
   \item{mufreq}{vector of mutation frequencies (values can range from 0 to 1).}
   \item{depth.ratio}{vector of depth ratios.}
+  \item{sd.ratio}{standard deviation observed in the depth ratio measures in a segment}
+  \item{sd.Bf}{standard deviation observed in the B-allele frequency measures in a segment}
   \item{weight.Bf}{vector of weights for B-allele frequency values.}
   \item{weight.mufreq}{vector of weights for the mutation frequency values.}
   \item{weight.ratio}{vector of weights for the depth ratio values.}
@@ -40,10 +43,10 @@
   \item{B}{number of B-alleles at the tested point.}
   \item{CNn}{copy number of the normal cell at the tested point (equal to CNn given as argument).}
   \item{Mt}{number of mutated alleles at the tested point.}
-  \item{L}{log-likelihood of model fitting at the given point.}
+  \item{LPP}{log-posterior probability of model fitting at the given point/segment.}
 }
 \details{
-  \code{baf.bayes} and \code{mufreq.bayes} use a naive Bayesian approach to calculate the likelihood of fitness of the data point with the model point resulting from the given values of cellularity and DNA-content.
+  \code{baf.bayes} and \code{mufreq.bayes} use a naive Bayesian approach to calculate the posterior probability of fitness of the data point with the model point resulting from the given values of cellularity and DNA-content.
 }
 
 \seealso{
