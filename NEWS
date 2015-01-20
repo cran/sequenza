@@ -1,3 +1,8 @@
+Changes in version 2.1.1 (2015-01-20)
+ - Fix heterozygous detection when importing VarScan2 data of very high coverage seq.
+ - Cleanup sequenza-utils.py
+ - Update citation info to published manuscript
+
 Changes in version 2.1.0 (2014-10-08)
  - Add sequenza-utils.py function bam2seqz
  - Add raw data depth-ratio/Bf in the genome view plots

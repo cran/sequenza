@@ -7,12 +7,13 @@
 }
 
 \usage{
-  VarScan2seqz(varscan.somatic, varscan.copynumber = NULL)
+  VarScan2seqz(varscan.somatic, varscan.copynumber = NULL, normal_var_freq = 0.25)
 }
 
 \arguments{
   \item{varscan.somatic}{a data frame from the output file of \command{somatic}.}
   \item{varscan.copynumber}{a data frame from the output file of \command{copynumber} (optional).}
+  \item{normal_var_freq}{defines the variant allele frequency threshold on the normal genotype to filter out false positive heterozygous position.}
 }
 
 \details{

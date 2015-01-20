@@ -16,7 +16,7 @@ from subprocess import Popen, check_call, PIPE
 from tempfile   import mkdtemp
 
 VERSION = "2.1.0"
-DATE    = "05 September 2014"
+DATE    = "07 October 2014"
 AUTHOR  = "Favero Francesco"
 MAIL    = "favero@cbs.dtu.dk"
 
@@ -636,7 +636,7 @@ class DefaultHelpParser(argparse.ArgumentParser):
         sys.exit(2)
 
 
-def DOpup2seqz(p1, p2, gc, n2, n, qlimit, qformat, hom, het, nproc, chunk, fileout, out_header):
+def DOpup2seqz(p1, p2, gc, n2, n, qlimit, qformat, hom, het, fileout, out_header):
    stream_mpileup = IterableQueue()
    if not n2:
       line_worker_partial = partial(line_worker, depth_sum=n, qlimit=qlimit, qformat=qformat, hom_t=hom, het_t=het)
@@ -644,16 +644,10 @@ def DOpup2seqz(p1, p2, gc, n2, n, qlimit, qformat, hom, het, nproc, chunk, fileo
          pup = multiPileups(normal,tumor)
          pup = GCmultiPileups(pup, gc_file)
          fileout.write("\t".join(out_header) + '\n')
-         if nproc > 0:
-            p = multiprocessing.Pool(processes=nproc)
-            for res in p.imap(line_worker_partial, pup,chunksize=chunk):
-               if res:
-                  fileout.write('\t'.join(map(str,res))+'\n')
-         else:
-            for line in pup:
-               res = line_worker_partial(line)
-               if res:
-                  fileout.write('\t'.join(map(str,res))+'\n')
+         for line in pup:
+            res = line_worker_partial(line)
+            if res:
+               fileout.write('\t'.join(map(str,res))+'\n')
    else:
       line_worker_partial = partial(line_worker, depth_sum=n, qlimit=qlimit, qformat=qformat, hom_t=hom, het_t=het, alt_pileup=True) 
       with xopen(p1, 'rb') as normal, xopen(p2, 'rb') as tumor, xopen(gc, 'rb') as gc_file, xopen(n2, 'rb') as alt_normal:
@@ -661,16 +655,10 @@ def DOpup2seqz(p1, p2, gc, n2, n, qlimit, qformat, hom, het, nproc, chunk, fileo
          pup = GCmultiPileups(pup, gc_file)
          pup = GCmultiPileupsAltDepth(pup, alt_normal)
          fileout.write("\t".join(out_header) + '\n')
-         if nproc > 0:
-            p = multiprocessing.Pool(processes=nproc)
-            for res in p.imap(line_worker_partial, pup,chunksize=chunk):
-               if res:
-                  fileout.write('\t'.join(map(str,res))+'\n')
-         else:
-            for line in pup:
-               res = line_worker_partial(line)
-               if res:
-                  fileout.write('\t'.join(map(str,res))+'\n')
+         for line in pup:
+            res = line_worker_partial(line)
+            if res:
+               fileout.write('\t'.join(map(str,res))+'\n')
 
 
 def pileup2acgt(parser, subparser):
@@ -683,11 +671,6 @@ def pileup2acgt(parser, subparser):
                        help='Name of the output file. To use gzip compression name the file ending in .gz. (default STDOUT).')
    parser_pup2muoutput.add_argument('--quiet', dest='quiet', action="store_true",
                        help='Do not output additional debugging information.')
-   parser_pup2muperformance = subparser.add_argument_group(title='Performance', description='Arguments that can effect the performance.')
-   parser_pup2muperformance.add_argument('-p', '--processes', dest='nproc', default=0, type=int,
-                   help='Set the number of processes to split the parsing job. If set to 0 (default), the job will occur with no forking to other processes.')
-   parser_pup2muperformance.add_argument('-c', '--chunk', dest='chunk', default=1000, type=int,
-                   help='Set the number of input lines to assign to each process, if NPROC > 0. (Default = 1000)')
    parser_pup2muqualitysets = subparser.add_argument_group(title='Quality and Format', description='Argument that change the quality threshold or the quality format.')
    parser_pup2muqualitysets.add_argument('-q', '--qlimit', dest='qlimit', default=20,type=int,
                    help='Minimum nucleotide quality score for inclusion in the counts.')
@@ -701,7 +684,6 @@ def pileup2acgt(parser, subparser):
 def pileup2seqz(parser, subparser):
    parser_ABinput    = subparser.add_argument_group(title='Input Files',description='Required input files.')
    parser_ABgenotype    = subparser.add_argument_group(title='Genotyper',description='Options regarding the genotyping.')
-   parser_ABperformance = subparser.add_argument_group(title='Performance', description='Options affecting the performance.')
    parser_ABqualitysets = subparser.add_argument_group(title='Quality and Format', description='Options that change the quality threshold and format.')
    parser_ABinput.add_argument('-n', '--normal', dest = 'normal', required = True,
                    help='Name of the pileup file from the reference/normal sample')
@@ -721,10 +703,6 @@ def pileup2seqz(parser, subparser):
                    help='Threshold to select homozygous positions. Default 0.9.')
    parser_ABgenotype.add_argument('--het', dest = 'het', type = float, default = 0.25,
                    help='Threshold to select heterozygous positions. Default 0.25.')
-   parser_ABperformance.add_argument('-p', '--processes', dest='nproc', default=0, type=int,
-                   help='Set the number of processes to split the parsing job. If set to 0 (default), the job will occur with no forking to other processes.')
-   parser_ABperformance.add_argument('-c', '--chunk', dest='chunk', default=1000, type=int,
-                   help='Set the number of input lines to assign to each process, if NPROC > 0. (Default = 1000)')
    return parser.parse_args()
 
 def bam2seqz(parser, subparser):
@@ -755,7 +733,7 @@ def bam2seqz(parser, subparser):
    parser_ABsamtools.add_argument("-S", '--samtools', dest = 'samtools', type = str, default = "samtools",
                    help='Path of samtools to use for the pileup generation.')
    parser_ABsamtools.add_argument("-C", '--chromosome', dest = 'chr', type = str, default = None,
-                   help='Argument to restrict the input/output to a chromosome or a chromosome region. Coordinate format is Name:pos.start-pos.end, eg: chr17:7565097-7590856, for a particular region; eg: chr17, for the entire chromosome. Chromosome name are depending of the BAM file and FASTA reference used for alignment. Default behaviour is not selecting any cromosome.')
+                   help='Argument to restrict the input/output to a chromosome or a chromosome region. Coordinate format is Name:pos.start-pos.end, eg: chr17:7565097-7590856, for a particular region; eg: chr17, for the entire chromosome. Chromosome names can checked in the BAM files and are depending on the FASTA reference used for alignment. Default behaviour is to not selecting any cromosome.')
    return parser.parse_args()
 
 def GC_windows(parser, subparser):
@@ -798,44 +776,15 @@ def main():
       used_module =  sys.argv[1]
       if used_module == "pileup2acgt":
          args = pileup2acgt(parser, parser_pup2mu)
-         if args.chunk == 0:
-            args.chunk = 1
-            args.nproc  = 0
-         if args.nproc >= 1:
-            p = multiprocessing.Pool(processes=args.nproc)
-         if not args.quiet:
-            logging.basicConfig(format='%(message)s')
-            start = time.clock()
-            if args.pileup != '-':
-               file_size = (os.stat(args.pileup).st_size/(1024*1024))
-               logging.warning("Converting " + args.pileup + " -- size = %0.1f MB --" % file_size + " to ACGT..." )
-            else:
-               logging.warning("Converting " + args.pileup + " from STDIN to ACGT..." )
-            logging.warning("Using chunks of " + str(args.chunk) + " line(s), and splitting the job into " + str(args.nproc+1)  + " process(es).")
-         with xopen(args.output, "wb") as fileout:
-            with xopen(args.pileup, "rb") as f:
-               fileout.write('chr' + "\t" + 'n_base' + "\t" + 'ref_base' + "\t" +  'read.depth' + "\t" + 'A' + "\t" + 'C' + "\t" + 'G' + "\t" + 'T' + "\t" + "strand" + '\n')
-               parse_pileup_partial = partial(parse_pileup_str, min_depth=args.n, qlimit=args.qlimit, qformat=args.qformat)
-               counter = 0
-               for chunk in grouper(args.chunk, f):
-                  if args.nproc >= 1:
-                     try:
-                        results = p.map_async(parse_pileup_partial, chunk).get(99)
-                     except AttributeError:
-                        pass
-                  else:
-                     try:
-                        results = map(parse_pileup_partial, chunk)
-                     except AttributeError:
-                        pass
-                  for r in results:
-                     counter = counter + 1
-                     if r:
-                        fileout.write(r + '\n')
-            if not args.quiet:
-               end = time.clock()
-               seconds =  end-start
-               logging.warning("Pileup to ACGT: processed " + str(counter) + " lines in " + str(seconds) + " seconds")
+
+         with xopen(args.output, "wb") as fileout, xopen(args.pileup, "rb") as f:
+            fileout.write('chr' + "\t" + 'n_base' + "\t" + 'ref_base' + "\t" +  'read.depth' + "\t" + 'A' + "\t" + 'C' + "\t" + 'G' + "\t" + 'T' + "\t" + "strand" + '\n')
+            parse_pileup_partial = partial(parse_pileup_str, min_depth=args.n, qlimit=args.qlimit, qformat=args.qformat)
+            for line in f:
+               try:
+                  fileout.write(parse_pileup_partial(line) + '\n')
+               except AttributeError:
+                  pass                        
 
       elif used_module == "bam2seqz":
          args = bam2seqz(parser, parser_bam2seqz)
@@ -860,7 +809,7 @@ def main():
                nor1 = Popen(cmd_nor1, stdout = PIPE)
                nor2 = Popen(cmd_nor3, stdout = PIPE)
                with named_pipe() as tfifo, named_pipe() as nfifo, named_pipe() as n2fifo:
-                  res = multiprocessing.Process(target = DOpup2seqz, args = (nfifo, tfifo, args.gc, n2fifo, args.n,  args.qlimit, args.qformat, args.hom, args.het, 0, 1, fileout, out_header))
+                  res = multiprocessing.Process(target = DOpup2seqz, args = (nfifo, tfifo, args.gc, n2fifo, args.n,  args.qlimit, args.qformat, args.hom, args.het, fileout, out_header))
                   res.start()
                   with open(nfifo, 'wb', 0) as normal, open(tfifo, 'wb', 0) as tumor, open(n2fifo, 'wb', 0) as normal2:
                      fifos = [Popen(cmd_tum2, stdin=tum1.stdout, stdout=tumor, stderr=PIPE), Popen(cmd_nor2, stdin=nor1.stdout, stdout=normal, stderr=PIPE), Popen(cmd_nor4, stdin=nor2.stdout, stdout=normal2, stderr=PIPE)]
@@ -874,7 +823,7 @@ def main():
                tum1 = Popen(cmd_tum1, stdout = PIPE)
                nor1 = Popen(cmd_nor1, stdout = PIPE)
                with named_pipe() as tfifo, named_pipe() as nfifo:
-                  res = multiprocessing.Process(target = DOpup2seqz, args = (nfifo, tfifo, args.gc, args.normal2, args.n,  args.qlimit, args.qformat, args.hom, args.het, 0, 1, fileout, out_header))
+                  res = multiprocessing.Process(target = DOpup2seqz, args = (nfifo, tfifo, args.gc, args.normal2, args.n,  args.qlimit, args.qformat, args.hom, args.het, fileout, out_header))
                   res.start()
                   with open(nfifo, 'wb', 0) as normal, open(tfifo, 'wb', 0) as tumor:
                      fifos = [Popen(cmd_tum2, stdin=tum1.stdout, stdout=tumor, stderr=PIPE), Popen(cmd_nor2, stdin=nor1.stdout, stdout=normal, stderr=PIPE)]
@@ -888,7 +837,7 @@ def main():
          args = pileup2seqz(parser, parser_pileup2seqz)
          with xopen('-', "wb") as fileout:
             out_header = ["chromosome", "position", "base.ref", "depth.normal", "depth.tumor", "depth.ratio", "Af", "Bf", "zygosity.normal", "GC.percent", "good.reads", "AB.normal", "AB.tumor", "tumor.strand"]
-            res = multiprocessing.Process(target = DOpup2seqz, args = (args.normal, args.tumor, args.gc, args.normal2, args.n,  args.qlimit, args.qformat, args.hom, args.het, args.nproc, args.chunk, fileout, out_header))
+            res = multiprocessing.Process(target = DOpup2seqz, args = (args.normal, args.tumor, args.gc, args.normal2, args.n,  args.qlimit, args.qformat, args.hom, args.het, fileout, out_header))
             res.start()
          res.join()
 

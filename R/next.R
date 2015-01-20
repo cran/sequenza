@@ -46,7 +46,7 @@ sequenza2PyClone <- function(mut.tab, seg.cn, sample.id, norm.cn = 2) {
   na.exclude(pyclone.tsv)
 }
 
-VarScan2seqz <- function(varscan.somatic, varscan.copynumber = NULL) {
+VarScan2seqz <- function(varscan.somatic, varscan.copynumber = NULL, normal_var_freq = 0.25) {
    
    iupac.nucs     <- setNames(c('A', 'C', 'G', 'GT', 'AC', 'AG', 'CG', 'T', 'AT', 'CT'),
                               c('A', 'C', 'G', 'K', 'M', 'R', 'S', 'T', 'W', 'Y'))
@@ -56,11 +56,19 @@ VarScan2seqz <- function(varscan.somatic, varscan.copynumber = NULL) {
    varscan.somatic$normal_var_freq <- as.numeric(sub('%', '', varscan.somatic$normal_var_freq)) / 100
    varscan.somatic$tumor_var_freq  <- as.numeric(sub('%', '', varscan.somatic$tumor_var_freq)) / 100
    zygosity.normal <- zygosity.vect[varscan.somatic$normal_gt]
-   AB.normal  <- iupac.nucs[varscan.somatic$normal_gt]
-   AB.tumor    <- rep('.', length(AB.normal))
-   strand      <- AB.tumor
+   if (normal_var_freq > 0.5){
+      normal_var_freq <- 1 - normal_var_freq
+   }
+   idx             <- which(zygosity.normal == "het" &
+                   (normal_var_freq >= varscan.somatic$normal_var_freq |
+                   varscan.somatic$normal_var_freq >= (1-normal_var_freq)))
+   varscan.somatic <- varscan.somatic[-idx, ]
+   zygosity.normal <- zygosity.vect[varscan.somatic$normal_gt]
+   AB.normal    <- iupac.nucs[varscan.somatic$normal_gt]
+   AB.tumor     <- rep('.', length(AB.normal))
+   strand       <- AB.tumor
    depth.normal <- varscan.somatic$normal_reads1 + varscan.somatic$normal_reads2
-   depth.tumor <- varscan.somatic$tumor_reads1 + varscan.somatic$tumor_reads1
+   depth.tumor  <- varscan.somatic$tumor_reads1 + varscan.somatic$tumor_reads1
    depth.ratio  <- depth.tumor/depth.normal
    Af <- 1 - varscan.somatic$tumor_var_freq
    Bf <- rep(0, length(Af))
