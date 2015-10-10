@@ -4,8 +4,8 @@ Description: Tools to analyze genomic sequencing data from
  paired normal-tumor samples, including cellularity and ploidy estimation; mutation
  and copy number (allele-specific and total copy number) detection, quantification 
  and visualization.
-Version: 2.1.1
-Date: 2015-01-20
+Version: 2.1.2
+Date: 2015-08-18
 Author: Francesco Favero, Andrea M. Marquard, Tejal Joshi, Aron C. Eklund
 Maintainer: Francesco Favero <favero@cbs.dtu.dk>
 Depends: R (>= 3.0.0), copynumber, parallel, squash
@@ -13,7 +13,7 @@ Suggests:
 License: GPL-3
 URL: http://cbs.dtu.dk/biotools/sequenza/, Mailing list:
         https://groups.google.com/forum/#!forum/sequenza-user-group
-Packaged: 2015-01-20 04:38:23 UTC; favero
 NeedsCompilation: no
+Packaged: 2015-10-08 19:07:04 UTC; favero
 Repository: CRAN
-Date/Publication: 2015-01-27 16:55:55
+Date/Publication: 2015-10-10 01:22:44

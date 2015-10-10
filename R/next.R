@@ -75,7 +75,17 @@ VarScan2seqz <- function(varscan.somatic, varscan.copynumber = NULL, normal_var_
    idx <- zygosity.normal == 'het' & Af  < 0.5
    Af[idx] <- 1 - Af[idx]
    idx <- zygosity.normal == 'het'
-   Bf[idx] <- 1 - Af[idx]
+   Bf[idx]  <- 1 - Af[idx]
+   ## Overwrite the Genotype base orders to
+   ## support pseudo haplotype analysis.
+   genotype_1     <- varscan.somatic[idx, c("ref", "var")]
+   genotype_1     <- apply(genotype_1, 1, paste, collapse = "")
+   AB.normal[idx] <- genotype_1
+   idx            <- idx & varscan.somatic$tumor_var_freq > 0.5
+   genotype_2     <- varscan.somatic[idx, c("var", "ref")]
+   genotype_2     <- apply(genotype_2, 1, paste, collapse = "")
+   AB.normal[idx] <- genotype_2
+   ## Not the best way, but I'm running out of ideas
    idx <- zygosity.normal == 'hom' & varscan.somatic$somatic_status == 'Somatic'
    if (sum(idx) > 0) {
       mut.b <- cbind(as.character(iupac.nucs[varscan.somatic$tumor_gt[idx]]),

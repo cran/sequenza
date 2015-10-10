@@ -1,3 +1,7 @@
+Changes in version 2.1.2 (2015-08-18)
+ - Keep the order of the bases corresponding to the major and minor alleles as in the normal sample. (allows mocking haplotype).
+ - Fix check for NOTES in newer R versions
+
 Changes in version 2.1.1 (2015-01-20)
  - Fix heterozygous detection when importing VarScan2 data of very high coverage seq.
  - Cleanup sequenza-utils.py
