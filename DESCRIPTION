@@ -2,18 +2,42 @@ Package: sequenza
 Title: Copy Number Estimation from Tumor Genome Sequencing Data
 Description: Tools to analyze genomic sequencing data from
  paired normal-tumor samples, including cellularity and ploidy estimation; mutation
- and copy number (allele-specific and total copy number) detection, quantification 
+ and copy number (allele-specific and total copy number) detection, quantification
  and visualization.
-Version: 2.1.2
-Date: 2015-08-18
-Author: Francesco Favero, Andrea M. Marquard, Tejal Joshi, Aron C. Eklund
-Maintainer: Francesco Favero <favero@cbs.dtu.dk>
-Depends: R (>= 3.0.0), copynumber, parallel, squash
-Suggests:
+Version: 3.0.0
+Date: 2019-05-09
+Authors@R: c(
+   person(given = "Francesco", family = "Favero",
+          email = "favero.francesco@gmail.com",
+          role = c("aut", "cre"),
+          comment = c(ORCID = "0000-0003-3684-2659")),
+   person(given = c("Andrea", "Marion"), family = "Marquard",
+          role = c("rev"),
+          comment = c(ORCID = "0000-0003-2928-6017")),
+   person(given = "Tejal", family = "Joshi",
+          role = c("rev"),
+          comment = c(ORCID = "0000-0002-0939-2982")),
+   person(given = c("Aron", "Charles"), family = "Eklund",
+          role = c("aut", "ths"),
+          comment = c(ORCID = "0000-0003-0861-1001"))
+  )
+Depends: R (>= 3.2.0)
+Imports: pbapply, squash, iotools, readr, seqminer, copynumber
+Suggests: testthat, knitr, rmarkdown, rmdformats
 License: GPL-3
-URL: http://cbs.dtu.dk/biotools/sequenza/, Mailing list:
+URL: https://sequenzatools.bitbucket.io, Mailing list:
         https://groups.google.com/forum/#!forum/sequenza-user-group
+BugReports: https://bitbucket.org/sequenzatools/sequenza/issues
+SystemRequirements: pandoc (>= 1.12.3)
+VignetteBuilder: knitr, rmarkdown
+Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2015-10-08 19:07:04 UTC; favero
+Packaged: 2019-05-09 12:58:45 UTC; lgq442
+Author: Francesco Favero [aut, cre] (<https://orcid.org/0000-0003-3684-2659>),
+  Andrea Marion Marquard [rev] (<https://orcid.org/0000-0003-2928-6017>),
+  Tejal Joshi [rev] (<https://orcid.org/0000-0002-0939-2982>),
+  Aron Charles Eklund [aut, ths]
+    (<https://orcid.org/0000-0003-0861-1001>)
+Maintainer: Francesco Favero <favero.francesco@gmail.com>
 Repository: CRAN
-Date/Publication: 2015-10-10 01:22:44
+Date/Publication: 2019-05-09 13:50:04 UTC

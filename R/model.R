@@ -1,99 +1,98 @@
-theoretical.depth.ratio <- function(CNt, CNn = 2, cellularity, ploidy, normal.ploidy = 2, avg.depth.ratio = 1) {
-   cellu.copy.term   <- (1 - cellularity) + (CNt / CNn * cellularity)
-   ploidy.cellu.term <- (ploidy / normal.ploidy * cellularity) + 1 - cellularity
-   avg.depth.ratio * cellu.copy.term / ploidy.cellu.term
+theoretical.depth.ratio <- function(CNt, cellularity, ploidy, CNn = 2,
+    normal.ploidy = 2, avg.depth.ratio = 1) {
+    cellu_copy_term <- (1 - cellularity) + (CNt / CNn * cellularity)
+    ploidy_cellu_term <- (ploidy / normal.ploidy * cellularity) +
+        1 - cellularity
+    avg.depth.ratio * cellu_copy_term / ploidy_cellu_term
 }
 
-theoretical.mufreq <- function(Mt, CNt, CNn = 2, cellularity) {
-   normal.alleles <- (CNt - Mt) * cellularity + CNn * (1 - cellularity)
-   all.alleles    <- (CNt * cellularity) + CNn * (1 - cellularity)
-   1 - (normal.alleles / all.alleles)
+theoretical.baf <- function(CNt, B, cellularity, CNn = 2) {
+    baf <- ( (B * cellularity) + ( 1 - cellularity) ) /
+        ( (CNt * cellularity) + CNn * ( 1 - cellularity) )
+    baf[CNn <= 1] <- NA
+    baf
 }
 
-types.matrix <- function(CNt.min, CNt.max, CNn = 2) {
-   cn.ratio.vect <- seq(from = CNt.min / CNn, to =  CNt.max / CNn, by = 1 / CNn)
-   CNt           <- cn.ratio.vect * CNn
-   mut.comb      <- lapply(CNt, FUN = function(x) seq(from = 0, to = x))
-   times.muts    <- sapply(mut.comb, length)
-   data.frame(CNn = CNn, CNt = rep(CNt, times = times.muts),
-              Mt = unlist(mut.comb))
+theoretical.mufreq <- function(CNt, Mt, cellularity, CNn = 2) {
+    normal_alleles <- (CNt - Mt) * cellularity + CNn * (1 - cellularity)
+    all_alleles <- (CNt * cellularity) + CNn * (1 - cellularity)
+    1 - (normal_alleles / all_alleles)
 }
 
-model.points <- function(cellularity, ploidy,
-                         types, avg.depth.ratio) {
-   mufreqs     <-  theoretical.mufreq(cellularity = cellularity , CNn = types[, 1], CNt = types[, 2], Mt = types[, 3])
-   depth.ratio <-  theoretical.depth.ratio(cellularity = cellularity, ploidy = ploidy,
-                                       CNt = types[, 2], CNn = types[, 1],
-                                       avg.depth.ratio = avg.depth.ratio)
-   cbind(mufreqs, depth.ratio)
+baf.types.matrix <- function(CNt.min, CNt.max, CNn = 2) {
+    cn_ratio_vect <- seq(from = CNt.min / CNn, to = CNt.max / CNn,
+        by = 1 / CNn)
+    CNt <- cn_ratio_vect * CNn
+    if (CNn < 2) {
+        b_comb <- lapply(CNt, FUN = function(x) 0)
+    } else {
+        b_comb <- lapply(CNt, FUN = function(x) {
+            seq(from = 0, to = trunc(x / 2))
+        })
+    }
+    times_b <- sapply(b_comb, length)
+    CNt <- rep(CNt, times = times_b)
+    B <- unlist(b_comb)
+    data.frame(CNn = CNn, CNt = CNt, B = B)
 }
 
-# theoretical.baf <- function(cellularity = 0.5, CNt = 2, B = 1, CNn = 2){
-#    B.tot <- ((B * cellularity)  + (1 - cellularity)) /
-#             ((CNt * cellularity) + CNn*(1 - cellularity))
-#    B.tot
-# }
-
-theoretical.baf <- function(CNt, CNn = 2, cellularity) {
-   alleles       <- seq(from = 1, to = CNt, by = 1)
-   max.b <- function(CNt) {
-      max.b.alleles <- CNt / 2
-      if (CNt %% 2 != 0 ) {
-         max.b.alleles <- trunc(max.b.alleles)
-      }
-      max.b.alleles
-   }
-   fract.normal.alleles <- (1 - cellularity)
-   res                  <- list()
-   for (i in 1:length(alleles)) {
-      max.b.alleles <- max.b(alleles[i])
-      max.a.alleles <- alleles[i] - max.b.alleles
-      decrements.b  <- seq(from = max.b.alleles, to = 0, by = -1)
-      res[[i]]     <- list()
-      for (n in 1:length(decrements.b)) {
-         A.i <- (max.a.alleles + decrements.b[n])
-         B.i <- (max.b.alleles - decrements.b[n])
-         BAF <- (fract.normal.alleles + (cellularity * B.i)) / ((alleles[i] * cellularity) + (CNn * fract.normal.alleles))
-         res[[i]][[n]] <- cbind(A = A.i, B = B.i, BAF = BAF, CNt = alleles[i])
-      }
-   }
-   for (i in 1:length(res)) {
-      res[[i]] <- do.call(rbind,res[[i]])
-   }
-   as.data.frame(do.call(rbind,res))
+mufreq.types.matrix <- function(CNt.min, CNt.max, CNn = 2) {
+    cn_ratio_vect <- seq(from = CNt.min / CNn,
+        to = CNt.max / CNn, by = 1 / CNn)
+    CNt <- cn_ratio_vect * CNn
+    mut_comb <- lapply(CNt, FUN = function(x) seq(from = 0, to = x))
+    times_muts <- sapply(mut_comb, length)
+    data.frame(CNn = CNn, CNt = rep(CNt, times = times_muts),
+        Mt = unlist(mut_comb))
 }
 
-expected.baf <- function(sd, ...) {
-   baf      <- theoretical.baf(...)
-   baf.t2 <- function(BAF, sd, by = 0.001){
-      bafs   <- seq(0,1,0.001)
-      b.b    <- dt2(x = bafs, mean = BAF, sd = sd, df = 5)
-      b.a    <- dt2(x = bafs, mean = 1-BAF, sd = sd, df = 5)
-      half.b <- bafs[bafs <= 0.5]
-      b <- (b.b+b.a)[bafs <= 0.5]
-      weighted.mean(half.b,b)
-   }
-   BAF <- mapply(FUN = baf.t2, baf$BAF,
-                 MoreArgs = list(sd = sd))
-   wgh <- dt2(x = baf$BAF, mean = 0.5, sd = sd, df = 5)
-   wgh <- wgh/max(wgh)
-   mean.bf <- function(x) {
-      weighted.mean(x=c(x["BAF"], x["eBAF"]), w = c((1-x["wgh"]), x["wgh"]))
-   }
-   baf$BAF <- apply(cbind(BAF = baf$BAF, eBAF = BAF, wgh = wgh), 1, FUN = mean.bf)
-   baf
+baf.model.points <- function(cellularity, ploidy, baf_types, avg.depth.ratio) {
+    depth_ratio <- theoretical.depth.ratio(cellularity = cellularity,
+        ploidy = ploidy, CNn = baf_types[, "CNn"], CNt = baf_types[, "CNt"],
+        avg.depth.ratio = avg.depth.ratio)
+    baf <- theoretical.baf(cellularity = cellularity, CNn = baf_types[, "CNn"],
+        CNt = baf_types[, "CNt"], B = baf_types[, "B"])
+    data.frame(BAF = baf, depth.ratio = depth_ratio)
 }
 
-baf.model.points <- function (CNt.min, CNt.max, CNn = 2, cellularity,
-                              ploidy, avg.depth.ratio) {
-   mufreq.depth.ratio <- model.points(cellularity = cellularity, ploidy = ploidy,
-                                      types = cbind(CNn = CNn, CNt = CNt.min:CNt.max, Mt = 0),
-                                      avg.depth.ratio = avg.depth.ratio)
-   model.d.ratio      <- cbind(CNt = CNt.min:CNt.max, depth.ratio = mufreq.depth.ratio[, 2])
-   model.baf          <- theoretical.baf(CNn = CNn, CNt = CNt.max, cellularity = cellularity)
-   if (CNt.min == 0) {
-      model.baf <- as.data.frame(rbind(c(0, 0, 0.5, 0), model.baf))
-   }
-   model.pts          <- merge(model.baf, model.d.ratio)
-   model.pts
+mufreq.model.points <- function(cellularity, ploidy, mufreq_types,
+    avg.depth.ratio) {
+    mufreqs <- theoretical.mufreq(cellularity = cellularity,
+        CNn = mufreq_types[, "CNn"], CNt = mufreq_types[, "CNt"],
+        Mt = mufreq_types[, "Mt"])
+    depth_ratio <- theoretical.depth.ratio(cellularity = cellularity,
+        ploidy = ploidy, CNn = mufreq_types[, "CNn"],
+        CNt = mufreq_types[, "CNt"], avg.depth.ratio = avg.depth.ratio)
+    data.frame(mufreqs = mufreqs, depth.ratio = depth_ratio)
+}
+
+b_allele_freq <- function(Af, Bf, good.reads, conf = 0.95) {
+    if (length(Bf) > 1) {
+        dd <- density(c(Bf, Af), weight = c(good.reads, good.reads) /
+            (2 * sum(good.reads)))
+        points.max <- which(diff(sign(diff(dd$y))) == -2) + 1
+        if (length(points.max) < 1) {
+            points.max <- which(diff(sign(diff(dd$y))) == -1) + 1
+        }
+        l.max <- dd$x[points.max]
+        d.max <- dd$y[points.max]
+        b.val <- l.max[which.max(dd$y[dd$x %in% l.max])]
+        if (length(b.val) < 1) {
+            message('WARNING', l.max, d.max, b.val)
+            b.val <- min(l.max)
+        }
+        d.val <- d.max[which(l.max == b.val)]
+        b.range <- range(dd$x[dd$y >=  d.val - (d.val * (1 - conf))])
+        if (b.val > 0.5) {
+            b.val <- 1 - b.val
+        }
+        max_diff <- max(b.range) - b.val
+        min_diff <- b.val - min(b.range)
+        min_diff <- min(c(max_diff, min_diff))
+        c(b.val - min_diff, b.val, b.val + min_diff)
+    } else if (length(Bf) == 1) {
+        c(Bf, Bf, Bf)
+    } else {
+        c(NA, NA, NA)
+    }
 }

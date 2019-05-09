@@ -1,0 +1,284 @@
+---
+title: "Sequenza User Guide"
+date: "`r Sys.Date()`"
+author: "[Francesco Favero](mailto:favero.francesco@gmail.com)"
+output:
+  rmdformats::readthedown:
+    self_contained: true
+vignette: >
+  %\VignetteIndexEntry{Sequenza User Guide}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# About
+
+> Sequenza: Copy Number Estimation from Tumor Genome Sequencing Data
+
+
+![](https://bytebucket.org/sequenzatools/icons/raw/324bd43ac4d10546b64b04c38d8c513e8420346d/svg/sequenza_tools/sequenzaalpha_150.svg)
+
+[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/sequenza)](https://cran.r-project.org/package=sequenza)
+[![CRAN_Downloads_Badge](http://cranlogs.r-pkg.org/badges/sequenza)](https://cran.r-project.org/package=sequenza)
+[![CRAN_licence](https://img.shields.io/cran/l/sequenza.svg)](https://www.gnu.org/licenses/gpl-3.0.txt)
+
+
+
+Sequenza is a tool to analyze genomic sequencing data from paired normal-tumor samples, including cellularity and ploidy estimation; mutation and copy number (allele-specific and total copy number) detection, quantification and visualization.
+
+# Introduction
+
+Deep sequence of tumor DNA along with corresponding normal DNA can provide a
+valuable perspective on the mutations and aberrations that characterize the
+tumor. However, analysis of this data can be impeded by tumor cellularity and
+heterogeneity and by unwieldy data. Here we describe *Sequenza*, an R package
+that enables the efficient estimation of tumor cellularity and ploidy, and
+generation of copy number, loss-of-heterozygosity, and mutation frequency
+profiles.
+
+This document details a typical analysis of matched tumor-normal exome sequence
+data using *sequenza*.
+
+# Getting started
+
+## Minimum requirements
+ - Software: R, Python, SAMtools, tabix
+ - Operating system: Linux, OS X, Windows
+ - Memory: Minimum 4 GB of RAM. Recommended >8 GB.
+ - Disk space: 1.5 GB for sample (depending on sequencing depth)
+ - R version: 3.2.0
+ - Python version: 2.7, 3.4, 3.5, 3.6 (or PyPy)
+
+## Installation
+
+The R package can be installed by:
+
+```r
+setRepositories(graphics = FALSE, ind = 1:6)
+install.packages("sequenza")
+```
+
+To install the Python companion package *sequenza-utils* to preprocess BAM
+files, refer to the [*sequenza-utils*](https://pypi.org/project/sequenza-utils)
+project page, or simply use the python package manager from the command prompt:
+
+```bash
+pip install sequenza-utils
+```
+
+# Running sequenza
+
+## Preprocessing of input files
+
+In order to obtain precise mutational and aberration patterns in a tumor sample,
+Sequenza requires a matched normal sample from the same patient. Typically, the
+following files are needed to get started with Sequenza:
+
+ - A BAM file (or a derived pileup file) from the tumor specimen.
+ - A BAM file (or a derived pileup file) from the normal specimen.
+ - A FASTA reference genomic sequence file
+
+
+The normal and tumor BAM files are processed together to generate a *seqz* file, which
+is the required input for the analysis.
+It is possible to generate a *seqz* starting from other processed data, such as
+pileup, or VCF files. The available options are described in the
+[*sequenza-utils*](http://sequenza-utils.readthedocs.io/) manual pages.
+
+The *sequenza-utils* command provides various tools; here we highlight only the
+basic usage:
+
+ - Process a FASTA file to produce a GC [Wiggle](https://genome.ucsc.edu/goldenpath/help/wiggle.html)
+ track file:
+ 
+```bash
+sequenza−utils gc_wiggle −w 50 --fasta hg19.fa -o hg19.gc50Base.wig.gz
+```
+
+ - Process BAM and Wiggle files to produce a *seqz* file:
+ 
+```bash
+sequenza−utils bam2seqz -n normal.bam -t tumor.bam --fasta hg19.fa \
+    -gc hg19.gc50Base.wig.gz -o out.seqz.gz
+```
+
+ - Post-process by binning the original *seqz* file:
+ 
+```bash
+sequenza−utils seqz_binning --seqz out.seqz.gz -w 50 -o out small.seqz.gz
+```
+ 
+## Sequenza analysis (in R)
+
+```{r load}
+library(sequenza)
+```
+
+In the package is provided a small *seqz* file
+
+```{r data}
+data.file <-  system.file("extdata", "example.seqz.txt.gz", package = "sequenza")
+```
+
+```{r cp_data, echo=FALSE, message=FALSE}
+library(sequenza)
+data(CP.example)
+CP <- CP.example
+```
+
+
+
+The main interface consists of 3 functions:
+
+ - sequenza.extract: process seqz data, normalization and segmentation
+```{r extract, message=FALSE, warning=FALSE, results="hide"}
+test <- sequenza.extract(data.file, verbose = FALSE)
+```
+
+ - sequenza.fit: run grid-search approach to estimate cellularity and ploidy
+```{r fit, eval=FALSE}
+CP <- sequenza.fit(test)
+```
+
+ - sequenza.results: write files and plots using suggested or selected solution
+```{r results}
+sequenza.results(sequenza.extract = test,
+    cp.table = CP, sample.id = "Test",
+    out.dir="TEST")
+```
+
+# Plots and Results
+
+The function _sequenza.results_ outputs various files in the specified path.
+The resulting files are either output in pdf of in plain text. The files include
+quality control assessments (eg evaluate GC-correction), visualization of the
+data and files such as segmentation with copy number calling and mutation lists.
+
+## Result files
+
+Each generated file is briefly explained in the following table
+
+```{r res_dir, echo=FALSE}
+
+# create results list 
+# 
+res_list <- c("alternative_fit.pdf", "alternative_solutions.txt",
+    "chromosome_depths.pdf", "chromosome_view.pdf",
+    "CN_bars.pdf", "confints_CP.txt",
+    "CP_contours.pdf", "gc_plots.pdf",
+    "genome_view.pdf", "model_fit.pdf",
+    "mutations.txt", "segments.txt",
+    "sequenza_cp_table.RData", "sequenza_extract.RData",
+    "sequenza_log.txt")
+res_list <- paste("Test", res_list, sep = "_")
+
+description_list <- c(
+    "Alternative solution fir to the segments. One solution per slide",
+    "List of all ploidy/cellularity alternative solution",
+    "Visualization of sequencing coverage in the normal and in the tumor samples, before and after normalization",
+    "Visualization per chromosome of depth.ratio, B-allele frequency and mutations, using the selected or estimated solution. One chromosome per slide",
+    "Bar plot representing the percentage of genome in the detected copy number states",
+    "Table of the confidence inerval of the best solution from the model",
+    "Visualization of the likelihood density for each pair of cellularity/ploidy solution. The local maximum-likelihood points and confidence interval of the best estimate are also visualized",
+    "Visualization of the GC correction in the normal and in the tumor sample",
+    "Genome-whide visualization of the allele-specific and absolute copy number results, and raw profile of the depth ratio and allele frequency",
+    "model_fit.pdf",
+    "Table with mutation and estimated number of mutated alleles (Mt)",
+    "Table listing the detected segments, with estimated copy number state at each sement",
+    "RData object dump of the maxima a posteriori computation",
+    "RData object dump of all the sample information",
+    "Log with version and time information")
+knitr::kable(data.frame(Files = res_list, Description = description_list))
+#dir("TEST", pattern = "Test")
+
+```
+
+```{r read_segs, echo=FALSE}
+seg.tab <- read.table("TEST/Test_segments.txt",
+                      header = TRUE, sep ="\t")
+
+alt_res <- read.table("TEST/Test_alternative_solutions.txt",
+                      header = TRUE, sep ="\t")
+seg.tab <- seg.tab[seg.tab$CNt <= 4, ]
+is.num <- sapply(seg.tab, is.numeric)
+seg.tab[is.num] <- lapply(seg.tab[is.num], round, 3)
+```
+
+## Segments results
+
+The segmentation file with the allele-specific copy number calling is one of
+the main result of the analysis. A sample of the file is shown in the table below:
+
+```{r head_segs, echo=FALSE}
+knitr::kable(head(seg.tab))
+
+```
+
+
+The columns represents:
+
+  1. **chromosome**: Chromosome
+  2. **start.pos**: Start position of the segment
+  3. **end.pos**: End position of the segment
+  4. **Bf**: B-allele frequency value
+  5. **N.BAF**: Number of observation to compute _Bf_ in the segment
+  6. **sd.BAF**: Standard deviation of _Bf_
+  7. **depth.ratio**: Adjusted and normalized depth ratio tumor / normal
+  8. **N.ratio**: Number of observation to compute _depth.ratio_ in the segment
+  9. **sd.ratio**: Standard deviation of _depth.rati_
+  10. **CNt**: Estimated total copy number value
+  11. **A**: Estimated number of A-alleles
+  12. **B**: Estimated number of B-alleles (minor allele)
+  13. **LPP**: Log-posterior probability of the segment
+
+## Gene wide overview
+
+### Allele-specific copy number
+
+```{r g_view, echo=FALSE, fig.height=5, fig.width=10, fig.align='center'}
+sequenza:::genome.view(seg.tab)
+```
+
+### Total copy number
+
+```{r g_view_tot, echo=FALSE, fig.height=5, fig.width=10, fig.align='center'}
+sequenza:::genome.view(seg.tab, info.type = "CNt")
+```
+
+### Raw profile
+
+```{r g_view_raw, echo=FALSE, fig.height=5, fig.width=10, fig.align='center'}
+sequenza:::plotRawGenome(test, cellularity = alt_res$cellularity[1],
+    ploidy = alt_res$ploidy[1])
+```
+
+
+## Grid search maximum likelihood
+
+
+```{r CPplot, echo=TRUE, fig.height=5, fig.width=5, fig.align='center'}
+cp.plot(CP)
+cp.plot.contours(CP, add = TRUE,
+   likThresh = c(0.999, 0.95),
+   col = c("lightsalmon", "red"), pch = 20)
+```
+
+## Chromosome view
+
+_Chromosome view_ is the visualization that displays chromosome by crhosome, nutations,
+B-allele frequency and depth-ratio.
+The visualization makes it easier to ispect the segmentation results, comparing to
+a binned profile of the raw data.
+It also visualize the copy number calling using the _cellularity_ and _ploidy_ solution,
+making useful to asses if the copy number calling is acurate.
+In addition it provides a visualization of the mutation frequency that can also help to
+corroborate the solution.
+
+```{r c_view, echo=TRUE, fig.height=6, fig.width=8, fig.align='center'}
+chromosome.view(mut.tab = test$mutations[[1]], baf.windows = test$BAF[[1]],
+                ratio.windows = test$ratio[[1]],  min.N.ratio = 1,
+                segments = test$segments[[1]],
+                main = test$chromosomes[1],
+                cellularity = 0.89, ploidy = 1.9,
+                avg.depth.ratio = 1)
+```

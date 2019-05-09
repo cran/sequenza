@@ -1,82 +1,109 @@
 export(
-	read.seqz,
-	read.acgt,
-	gc.norm,
-	gc.sample.stats,
-	windowValues,
-	get.ci,
-	mutation.table,
-   find.breaks,
-   segment.breaks,
-	mufreq.bayes,
-	baf.bayes,
-	mufreq.model.fit,
-	baf.model.fit,
-   cp.plot,
-   cp.plot.contours,
-	plotWindows,
-	chromosome.view,
-   genome.view,
-	theoretical.depth.ratio,
-	theoretical.mufreq,
-	types.matrix,
-	model.points,
-	theoretical.baf,
-   sequenza.fit,
-   sequenza.extract,
-   sequenza.results,
-   VarScan2seqz
+    baf.bayes,
+    baf.model.fit,
+    baf.model.points,
+    baf.types.matrix,
+    chromosome.view,
+    cp.plot,
+    cp.plot.contours,
+    find.breaks,
+    gc.sample.stats,
+    gc.summary.plot,
+    get.ci,
+    mean_gc,
+    median_gc,
+    mufreq.bayes,
+    mufreq.model.fit,
+    mufreq.model.points,
+    mufreq.types.matrix,
+    plotWindows,
+    read.seqz,
+    segment.breaks,
+    sequenza.extract,
+    sequenza.fit,
+    sequenza.results,
+    theoretical.baf,
+    theoretical.depth.ratio,
+    theoretical.mufreq,
+    windowBf,
+    windowValues
+)
+importFrom("squash",
+    "colorgram",
+    "makecmap"
 )
 
-# Import all packages listed as Imports or Depends
-import(
- copynumber,
- parallel,
- squash
+importFrom("pbapply",
+    "pblapply"
 )
 
- importFrom("grDevices",
-   "colorRampPalette",
-   "dev.off",
-   "gray.colors",
-   "heat.colors",
-   "palette",
-   "pdf",
-   "rgb"
+importFrom("squash",
+    "colorgram",
+    "makecmap"
+)
+importFrom("iotools",
+    "mstrsplit",
+    "chunk.apply"
+)
+
+importFrom("readr",
+    "read_tsv"
+)
+
+importFrom("seqminer",
+    "tabix.read"
+)
+
+importFrom("copynumber",
+    "winsorize",
+    "pcf",
+    "aspcf"
+)
+
+importFrom("grDevices",
+    "colorRampPalette",
+    "dev.off",
+    "gray.colors",
+    "heat.colors",
+    "palette",
+    "pdf",
+    "rgb"
 )
 importFrom("graphics",
-   "abline",
-   "axis",
-   "barplot",
-   "contour",
-   "legend",
-   "mtext",
-   "par",
-   "plot",
-   "points",
-   "polygon",
-   "rect",
-   "segments",
-   "strwidth",
-   "text"
+    "abline",
+    "axis",
+    "barplot",
+    "contour",
+    "legend",
+    "lines",
+    "mtext",
+    "par",
+    "plot",
+    "points",
+    "polygon",
+    "rect",
+    "segments",
+    "strwidth",
+    "text"
 )
 importFrom("stats",
-   "dbinom",
-   "dpois",
-   "dt",
-   "median",
-   "na.exclude",
-   "quantile",
-   "sd",
-   "setNames",
-   "weighted.mean"
+    "dbinom",
+    "density",
+    "dpois",
+    "dt",
+    "median",
+    "na.exclude",
+    "quantile",
+    "sd",
+    "setNames",
+    "weighted.mean"
 )
 importFrom("utils",
-   "packageVersion",
-   "read.delim",
-   "read.table",
-   "setTxtProgressBar",
-   "tail",
-   "txtProgressBar",
-   "write.table"
+    "packageVersion",
+    "read.delim",
+    "read.table",
+    "setTxtProgressBar",
+    "tail",
+    "txtProgressBar",
+    "write.table"
 )

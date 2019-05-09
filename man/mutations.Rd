@@ -26,7 +26,7 @@ mutation.table(seqz.tab, mufreq.treshold = 0.15, min.reads = 40, min.reads.norma
   Calling mutations in impure tumor samples is a difficult task, because the degree of contamination by normal cells affects the measured mutation frequency. In highly impure samples, where the normal cells comprise the major component of the sample, mutations can be so diluted that it can be difficult to distinguish them from sequencing errors.
 
   The function \code{mutation.table} tries to separate true mutations from sequencing errors, based on the given threshold. In samples with low contamination, it should even be possible to catch sub-clonal mutations using this function.
-  
+
   This function identifes only those mutations occuring in positions that are homozygous in the normal genome.
 }
 
@@ -40,7 +40,7 @@ A data frame, which in addition to some of the columns of the seqz table, contai
 
    \dontrun{
 
-data.file <-  system.file("data", "example.seqz.txt.gz", package = "sequenza")
+data.file <-  system.file("extdata", "example.seqz.txt.gz", package = "sequenza")
 seqz.data  <- read.seqz(data.file)
 
 ## Normalize coverage by GC-content

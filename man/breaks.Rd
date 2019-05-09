@@ -32,7 +32,7 @@ segment.breaks(seqz.tab, breaks, min.reads.baf = 1, weighted.mean = TRUE)
 
   \dontrun{
 
-data.file <-  system.file("data", "example.seqz.txt.gz", package = "sequenza")
+data.file <-  system.file("extdata", "example.seqz.txt.gz", package = "sequenza")
 # read all the chromosomes:
 seqz.data  <- read.seqz(data.file)
 # Gather genome wide GC-stats from raw file:

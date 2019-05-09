@@ -1,3 +1,14 @@
+Changes in version 3.0.0 (2019-05-09)
+ - Code cleanup and refactoring
+ - Bug fixes
+ - Use readr and stop relying on system commands (grep, sed, gunzip) to read seqz files
+ - Use the package pbapply for progress bar
+ - Normalize each sample separately
+ - Provide coverage profile of the 2 samples separately, before and after normalization
+ - Provide CG-content vs depth profile for each samples, before and after normalization
+ - Draw standard "mirrored" BAF (from 0 to 1) in the raw genome view
+
+
 Changes in version 2.1.2 (2015-08-18)
  - Keep the order of the bases corresponding to the major and minor alleles as in the normal sample. (allows mocking haplotype).
  - Fix check for NOTES in newer R versions
@@ -15,7 +26,7 @@ Changes in version 2.1.0 (2014-10-08)
  - Model the expected B-allele frequencies with a t-distribution using the observed sd, rather then taking the 95% of the observed Bf.
  - Use dt instead of dbinom for the BAF and depth ratio model.
  - Fix documentation discrepancies on the sequenza-utils.py execution.
- - Add breaks as optional argument - enables to input custom segmentation - 
+ - Add breaks as optional argument - enables to input custom segmentation -
  - Add different segmentation options, fast, het and full, corresponding to different resolutions.
  - Minor fixes.
 
